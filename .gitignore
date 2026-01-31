@@ -1,0 +1,74 @@
+# ========================
+# OS & EDITOR JUNK
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ========================
+# PYTHON / DJANGO (Backend)
+# ========================
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Django specific
+*.sqlite3
+media/
+staticfiles/
+
+# SECURITY (Crucial)
+.env
+.env.local
+
+# ========================
+# NODE / REACT (Frontend)
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+coverage/
+
+# ========================
+# UNITY (Game Engine)
+# ========================
+# Unity generates massive temp folders. Never commit these.
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Visual Studio / Mono auto-generated files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
