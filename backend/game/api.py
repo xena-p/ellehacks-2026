@@ -1,7 +1,18 @@
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Schema
+from django.conf import settings
 from .gemini_utils import generate_question, QuestionSchema
-#from .models import Question
-api = NinjaAPI()
+
+# Ensure only one NinjaAPI instance exists across different import contexts
+if not hasattr(settings, "ELLEHACKS_NINJA_API"):
+    settings.ELLEHACKS_NINJA_API = NinjaAPI()
+
+api = settings.ELLEHACKS_NINJA_API
+
+class WinResponse(Schema):
+    new_coins: int
+    new_wins: int
+    leveled_up: bool
+    message: str
 
 @api.get("/hello")
 def hello(request):
@@ -16,14 +27,34 @@ def get_math_question(request):
     }
 
 
-@api.get("/generate-quiz/{level}", response=QuestionSchema)
-def get_quiz_question(request, level: int):
-    if level not in [1, 2, 3, 4]:
-         # You can raise HttpError or return specific codes here
-         return api.create_response(request, {"detail": "Invalid Level"}, status=400)
+@api.get("/generate-quiz", response=QuestionSchema)
+def get_quiz_question(request):
+    if request.user.is_authenticated:
+        player_level = request.user.level
+        print(f"Generating question for {request.user.username} at Level {player_level}")
+        return generate_question(player_level)
+    
+    # 2. If not logged in (testing/guest), default to Level 1
+    else:
+        return generate_question(1)
+    
 
-    try:
-        # returns a validated QuestionSchema object directly
-        return generate_question(level)
-    except ValueError:
-        return api.create_response(request, {"detail": "Generation failed"}, status=503)
+@api.post("/report-win", response=WinResponse)
+def report_win(request):
+    if not request.user.is_authenticated:
+         return api.create_response(request, {"detail": "Not logged in"}, status=401)
+    
+    player = request.user
+    # It adds a win, adds coins, and checks if level should go up.
+    leveled_up = player.add_win(coins_earned=10) 
+    
+    msg = "Victory!"
+    if leveled_up:
+        msg = f"LEVEL UP! You are now level {player.level}!"
+
+    return {
+        "new_coins": player.coins,
+        "new_wins": player.wins,
+        "leveled_up": leveled_up,
+        "message": msg
+    }
