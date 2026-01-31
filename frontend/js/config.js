@@ -12,5 +12,5 @@ const config = {
     dom: {
         createContainer: true
     },
-    scene: [MenuScene, BattleScene]
+    scene: [MenuScene, MapScene, BattleScene]
 };

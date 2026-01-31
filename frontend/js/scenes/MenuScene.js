@@ -7,6 +7,20 @@ class MenuScene extends Phaser.Scene {
     preload() {
         // Load assets needed for the menu
         this.load.image('sky-bg', 'assets/images/backgrounds/pixel-sky-background.png');
+
+        //Map Background
+        this.load.image("map", "assets/images/map/map.png");
+        // Level icons / buttons
+        this.load.image("level1Sprite", "assets/images/level1.png");
+        this.load.image("level2Sprite", "assets/images/level2.png");
+        this.load.image("level3Sprite", "assets/images/level3.png");
+        this.load.image("level4Sprite", "assets/images/level4.png");
+        this.load.image("level5Sprite", "assets/images/level5.png");
+    
+        this.load.image("shopSprite", "assets/images/shop.png");
+    // Optional: background, UI, sounds
+    // this.load.image("mapBg", "assets/map-bg.png");
+    // this.load.audio("correct", "assets/correct.mp3");
     }
 
     create() {
@@ -213,7 +227,8 @@ class MenuScene extends Phaser.Scene {
 
             // Start BattleScene after short delay (for testing)
             setTimeout(() => {
-                this.scene.start('BattleScene', { difficulty: 'easy', area: 'Savings Village' });
+                this.scene.start('MapScene');
+                //this.scene.start('BattleScene', { difficulty: 'easy', area: 'Savings Village' });
             }, 1000);
 
         } catch (error) {
