@@ -21,4 +21,5 @@ from game.api import api
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("game/", api.urls),
+    path('api/', api.urls),
 ]
