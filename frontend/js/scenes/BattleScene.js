@@ -53,9 +53,9 @@ class BattleScene extends Phaser.Scene {
     preload() {
         // For now, we'll use Phaser graphics for placeholders
         // Later, load actual sprites here:
-        // this.load.spritesheet('player', 'assets/images/player/player.png', { frameWidth: 64, frameHeight: 64 });
-        // this.load.spritesheet('enemy', 'assets/images/enemies/enemy.png', { frameWidth: 64, frameHeight: 64 });
-        // this.load.image('battle-bg', 'assets/images/backgrounds/battle-bg.png');
+        // this.load.spritesheet('player', 'frontend/assets/images/player/player.png', { frameWidth: 64, frameHeight: 64 });
+        // this.load.spritesheet('enemy', 'frontend/assets/images/enemies/enemy.png', { frameWidth: 64, frameHeight: 64 });
+        // this.load.image('battle-bg', 'frontend/assets/images/backgrounds/battle-bg.png');
     }
 
     create() {
