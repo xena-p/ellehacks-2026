@@ -764,6 +764,24 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
+    hitFlash(sprite, flashColor = 0xff0000, ms = 150) {
+  if (!sprite || !sprite.setTint) return;
+
+  sprite.setTint(flashColor);
+
+  this.tweens.add({
+    targets: sprite,
+    alpha: 0.2,
+    duration: ms / 3,
+    yoyo: true,
+    repeat: 2,
+    onComplete: () => {
+      sprite.setAlpha(1);
+      sprite.clearTint();
+    }
+  });
+}
+
     async showQuestion() {
         // Fetch question from Gemini API via backend
         try {
@@ -1028,6 +1046,9 @@ class BattleScene extends Phaser.Scene {
                     // Step 3: Impact! Shake enemy
                     this.shakeSprite(this.enemySprite, 10);
 
+                    //red tint
+                    this.hitFlash(this.enemySprite, 0xff0000, 150);
+
                     // Show damage number floating up
                     this.showDamageNumber(enemyX + 50, centerY - 30, damage, '#FF0000');
 
@@ -1124,6 +1145,9 @@ class BattleScene extends Phaser.Scene {
                     // Step 3: Impact! Shake player
                     this.shakeSprite(this.playerSprite, 10);
 
+                    //red tint:
+                    this.hitFlash(this.playerSprite, 0xff0000, 150);
+                   
                     // Show damage number floating up
                     this.showDamageNumber(playerX + 40, centerY - 30, damage, '#FF0000');
 
