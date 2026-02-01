@@ -10,12 +10,18 @@ class MenuScene extends Phaser.Scene {
 
         //Map Background
         this.load.image("map", "assets/images/map/map.png");
+
+        //Clouds for Map
+        this.load.image("cloud1Sprite", "assets/images/cloud1.png");
+        this.load.image("cloud2Sprite", "assets/images/cloud2.png");
+
         // Level icons / buttons
         this.load.image("level1Sprite", "assets/images/level1.png");
         this.load.image("level2Sprite", "assets/images/level2.png");
         this.load.image("level3Sprite", "assets/images/level3.png");
         this.load.image("level4Sprite", "assets/images/level4.png");
         this.load.image("level5Sprite", "assets/images/level5.png");
+
 
         //Battle Backgrounds
         this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
