@@ -1365,7 +1365,7 @@ class BattleScene extends Phaser.Scene {
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
         continueBtn.on('pointerdown', () => {
-            this.scene.start('MapScene');
+            //this.scene.start('MapScene');
         });
     }
 

@@ -565,36 +565,101 @@ class MenuScene extends Phaser.Scene {
         this.setupFormListeners();
     }
 
-    handleSubmit() {
-        const username = this.formElement.getChildByID('username').value.trim();
-        const password = this.formElement.getChildByID('password').value;
-        const errorDiv = this.formElement.getChildByID('error-message');
+async handleSubmit() {
+  const username = this.formElement.getChildByID('username').value.trim();
+  const password = this.formElement.getChildByID('password').value;
+  const errorDiv = this.formElement.getChildByID('error-message');
 
-        // Reset error styling
-        errorDiv.style.color = '#DC143C';
+  errorDiv.style.color = '#DC143C';
 
-        // Basic validation
-        if (!username || !password) {
-            errorDiv.textContent = 'Please fill in all fields';
-            return;
-        }
+  // validation (keep your current checks)
+  if (!username || !password) {
+    errorDiv.textContent = 'Please fill in all fields';
+    return;
+  }
+  if (username.length < 3) {
+    errorDiv.textContent = 'Username must be at least 3 characters';
+    return;
+  }
+  if (password.length < 4) {
+    errorDiv.textContent = 'Password must be at least 4 characters';
+    return;
+  }
 
-        if (username.length < 3) {
-            errorDiv.textContent = 'Username must be at least 3 characters';
-            return;
-        }
+  // UI: show loading state
+  errorDiv.style.color = '#666666';
+  errorDiv.textContent = this.isLoginMode ? 'Logging in...' : 'Creating account...';
 
-        if (password.length < 4) {
-            errorDiv.textContent = 'Password must be at least 4 characters';
-            return;
-        }
+  try {
+    const endpoint = this.isLoginMode ? 'login' : 'signup';
 
-        // Clear any previous errors
-        errorDiv.textContent = '';
+    const url =
+      `http://localhost:8000/api/auth/${endpoint}` +
+      `?username=${encodeURIComponent(username)}` +
+      `&password=${encodeURIComponent(password)}`;
 
-        // Both login and signup work the same way locally - no backend required
-        this.startGame(username);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+    console.log('Auth response:', data);
+
+    if (!response.ok || data.error || !data.token) {
+      errorDiv.style.color = '#DC143C';
+      errorDiv.textContent = data.error || 'Authentication failed.';
+      return;
     }
+
+    // Save the REAL token
+    localStorage.setItem('authToken', data.token);
+
+    // Now fetch player stats using the token
+    const playerRes = await fetch('http://localhost:8000/api/player', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${data.token}`
+      }
+    });
+
+    const player = await playerRes.json();
+    console.log('Player:', player);
+
+    if (!playerRes.ok || player.error) {
+      errorDiv.style.color = '#DC143C';
+      errorDiv.textContent = player.error || 'Could not load player profile.';
+      return;
+    }
+
+    // Store REAL player data in global gameData
+    gameData.user = {
+      username,
+      level: player.level,
+      wins: player.wins,
+      coins: player.coins,
+      max_hp: player.max_hp
+    };
+    gameData.isLoggedIn = true;
+
+    // Success UI
+    errorDiv.style.color = '#2E7D32';
+    errorDiv.textContent = 'Success! Loading map...';
+
+    this.time.delayedCall(600, () => {
+      this.scene.start('MapScene');
+    });
+
+  } catch (err) {
+    console.error(err);
+    errorDiv.style.color = '#DC143C';
+    errorDiv.textContent = 'Server error. Is Django running?';
+  }
+}
+
+
+    
 
     startGame(username) {
         const errorDiv = this.formElement.getChildByID('error-message');
