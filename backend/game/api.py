@@ -1,3 +1,5 @@
+from django.views.decorators.csrf import csrf_exempt
+from functools import wraps
 from ninja import NinjaAPI, Schema
 from django.conf import settings
 from .gemini_utils import generate_question, QuestionSchema
@@ -11,7 +13,6 @@ from .auth import TokenAuth
 
 # Ensure only one NinjaAPI instance exists across different import contexts
 api = NinjaAPI() 
-
 
 class WinResponse(Schema):
     new_coins: int
@@ -34,9 +35,9 @@ def get_math_question(request):
 
 @api.get("/generate-quiz", response=QuestionSchema, auth=TokenAuth())
 def get_quiz_question(request):
-    if request.user.is_authenticated:
-        player_level = request.user.level
-        print(f"Generating question for {request.user.username} at Level {player_level}")
+    if request.auth.is_authenticated:
+        player_level = request.auth.level
+        print(f"Generating question for {request.auth.username} at Level {player_level}")
         return generate_question(player_level)
     
     # 2. If not logged in (testing/guest), default to Level 1
@@ -46,10 +47,7 @@ def get_quiz_question(request):
 
 @api.post("/report-win", response=WinResponse, auth=TokenAuth())
 def report_win(request):
-    if not request.user.is_authenticated:
-         return api.create_response(request, {"detail": "Not logged in"}, status=401)
-    
-    player = request.user
+    player = request.auth
     # It adds a win, adds coins, and checks if level should go up.
     leveled_up = player.add_win(coins_earned=10) 
     
@@ -80,15 +78,15 @@ def signup(request, username: str, password: str):
 @api.post("/auth/login")
 def login_user(request, username: str, password: str):
     user = authenticate(username=username, password=password)
-    if not user:
-        return {"error": "Invalid credentials"}
-
     token, _ = Token.objects.get_or_create(user=user)
     return {"success": True, "token": token.key}
 
 @api.post("/game/start", auth=TokenAuth())
 def start_game(request):
-    user = request.user
+    if not request.auth.is_authenticated:
+        return {"message": "Authentication required"}, 401
+
+    user = request.auth
     map_level = user.level  # Start game at user's current level
 
     if not user.can_access_map(map_level):
@@ -108,7 +106,7 @@ def start_game(request):
 
 @api.post("/shop/buy-spell", auth=TokenAuth())
 def buy_spell(request, spell_id: int, game_run_id: int):
-    user = request.user
+    user = request.auth
     spell = Spell.objects.get(id=spell_id)
 
     if user.coins < spell.cost:
@@ -123,7 +121,7 @@ def buy_spell(request, spell_id: int, game_run_id: int):
 
 @api.post("/shop/buy-upgrade", auth=TokenAuth())
 def buy_upgrade(request, upgrade_id: int):
-    user = request.user
+    user = request.auth
     upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
 
     if user.coins < upgrade.cost:
@@ -138,7 +136,7 @@ def buy_upgrade(request, upgrade_id: int):
 def api_use_spell(request, game_run_id: int, spell_id: int):
     run = GameRun.objects.get(
         id=game_run_id,
-        user=request.user,
+        user=request.auth,
         active=True
     )
 
@@ -149,7 +147,7 @@ def api_use_spell(request, game_run_id: int, spell_id: int):
 def end_game(request, game_run_id: int, won: bool):
     run = GameRun.objects.get(
         id=game_run_id,
-        user=request.user,
+        user=request.auth,
         active=True
     )
 
