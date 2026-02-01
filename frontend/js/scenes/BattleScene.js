@@ -59,29 +59,72 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
-        // Get player data from global gameData
-        this.playerMaxHP = gameData.user ? (100 + (gameData.user.level - 1) * 20) : 100;
+        // Fetch player data from API, then initialize the battle
+        this.fetchPlayerData().then(() => {
+            // Select random enemy based on difficulty
+            const enemyList = this.ENEMIES[this.difficulty];
+            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+            this.enemyMaxHP = this.currentEnemy.hp;
+            this.enemyHP = this.enemyMaxHP;
+
+            // Create scene elements
+            this.createBackground();
+            this.createCharacters();
+            this.createHealthBars();
+            this.createSpellBar();
+            this.createCoinDisplay();
+            this.createShopIcon();
+            this.createQuestionIcon();
+
+            // Start battle with first question
+            this.battleState = 'battle';
+            this.showQuestion();
+        });
+    }
+
+    async fetchPlayerData() {
+        try {
+            const token = localStorage.getItem('authToken');
+
+            if (token && token !== 'local-user-token') {
+                // Fetch from backend API
+                const response = await fetch('http://localhost:8000/api/player', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Player data from API:', data);
+
+                    // Sync with gameData and use API values
+                    this.playerMaxHP = data.max_hp;
+                    this.playerHP = this.playerMaxHP;
+                    this.playerCoins = data.coins;
+
+                    // Update global gameData to stay in sync
+                    if (gameData.user) {
+                        gameData.user.level = data.level;
+                        gameData.user.max_hp = data.max_hp;
+                        gameData.user.coins = data.coins;
+                        gameData.user.wins = data.wins;
+                    }
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch player data from API:', error);
+        }
+
+        // Fallback to local gameData if API fails or using local auth
+        console.log('Using local gameData for player stats');
+        // Use stored max_hp if available, otherwise calculate from level
+        this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
         this.playerHP = this.playerMaxHP;
-        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50; // Default 50 coins for testing
-
-        // Select random enemy based on difficulty
-        const enemyList = this.ENEMIES[this.difficulty];
-        this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
-        this.enemyMaxHP = this.currentEnemy.hp;
-        this.enemyHP = this.enemyMaxHP;
-
-        // Create scene elements
-        this.createBackground();
-        this.createCharacters();
-        this.createHealthBars();
-        this.createSpellBar();
-        this.createCoinDisplay();
-        this.createShopIcon();
-        this.createQuestionIcon();
-
-        // Start battle with first question
-        this.battleState = 'battle';
-        this.showQuestion();
+        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
     }
 
     createShopIcon() {
@@ -1172,10 +1215,61 @@ class BattleScene extends Phaser.Scene {
         if (gameData.user) {
             gameData.user.wins = (gameData.user.wins || 0) + 1;
             gameData.user.coins = this.playerCoins;
+
+            // Local level up logic (mirrors backend LEVEL_THRESHOLDS)
+            const wins = gameData.user.wins;
+            const oldLevel = gameData.user.level;
+            if (wins >= 4) gameData.user.level = 5;
+            else if (wins >= 3) gameData.user.level = 4;
+            else if (wins >= 2) gameData.user.level = 3;
+            else if (wins >= 1) gameData.user.level = 2;
+            else gameData.user.level = 1;
+
+            // Show level up message if leveled up locally
+            if (gameData.user.level > oldLevel) {
+                this.showMessage(`LEVEL UP! Now level ${gameData.user.level}!`, '#FFD700');
+            }
         }
+
+        // Report win to backend API to sync stats (will override local if successful)
+        this.reportWinToBackend();
 
         // Show victory overlay
         this.showResultOverlay(true, coinsWon);
+    }
+
+    async reportWinToBackend() {
+        try {
+            const token = localStorage.getItem('authToken');
+
+            if (token && token !== 'local-user-token') {
+                const response = await fetch('http://localhost:8000/api/report-win', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Win reported to backend:', data);
+
+                    // Update local gameData with server response
+                    if (gameData.user) {
+                        gameData.user.coins = data.new_coins;
+                        gameData.user.wins = data.new_wins;
+                    }
+
+                    // Show level up message if applicable
+                    if (data.leveled_up) {
+                        this.showMessage(data.message, '#FFD700');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to report win to backend:', error);
+        }
     }
 
     battleDefeat() {
@@ -1234,9 +1328,7 @@ class BattleScene extends Phaser.Scene {
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
         continueBtn.on('pointerdown', () => {
-            // TODO: Return to MapScene
-            // For now, return to MenuScene
-            this.scene.start('MenuScene');
+            this.scene.start('MapScene');
         });
     }
 
