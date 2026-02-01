@@ -44,7 +44,8 @@ class Player(AbstractUser):
 
 
     def add_win(self, coins_earned: int):
-        self.wins += 1
+        if self.level < 5:
+            self.wins += 1
         self.coins += coins_earned
         old_level = self.level
         self.recalculate_level()
