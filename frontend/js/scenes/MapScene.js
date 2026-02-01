@@ -18,7 +18,7 @@ class MapScene extends Phaser.Scene {
 
     // Fetch player data then build the map
     this.fetchPlayerData().then(() => {
-      this.buildMap();
+      this.buildMap(); // Build map after fetching player data
     });
   }
 
@@ -437,6 +437,7 @@ class MapScene extends Phaser.Scene {
         if (obj && obj.destroy) {
           obj.destroy();
         }
+
       });
       this.shopUi = [];
     }
@@ -451,6 +452,7 @@ class MapScene extends Phaser.Scene {
       this.logoutBtn.setInteractive({ useHandCursor: true });
     }
 
+    //test
     // Re-enable level sprite interactivity (safety measure)
     if (this.levelSprites && this.levelSprites.length) {
       this.levelSprites.forEach(sprite => {

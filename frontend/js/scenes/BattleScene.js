@@ -83,6 +83,7 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
+    // Logout button
     createLogoutButton() {
         // Logout button (top-right, below coin display)
         this.logoutBtn = this.add.text(this.cameras.main.width - 20, 60, "LOGOUT", {
