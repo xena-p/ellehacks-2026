@@ -18,7 +18,7 @@ class MapScene extends Phaser.Scene {
 
     // Fetch player data then build the map
     this.fetchPlayerData().then(() => {
-      this.buildMap();
+      this.buildMap(); // Build map after fetching player data
     });
   }
 
@@ -53,9 +53,10 @@ class MapScene extends Phaser.Scene {
       console.error('Failed to fetch player data:', error);
     }
 
-    // Set coins from gameData (either from API or local)
+    // Set values from gameData (either from API or local)
     this.coins = gameData.user ? gameData.user.coins : 50;
     this.playerLevel = gameData.user ? gameData.user.level : 1;
+    this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
   }
 
   buildMap() {
@@ -83,6 +84,26 @@ class MapScene extends Phaser.Scene {
       fontSize: "20px",
       color: "#FFD700"
     }).setDepth(100);
+
+    // HP display (top-left, below level)
+    this.hpText = this.add.text(20, 80, `HP: ${this.playerMaxHP}`, {
+      fontFamily: "Fredoka One",
+      fontSize: "20px",
+      color: "#4EC5F1"
+    }).setDepth(100);
+
+    // Logout button (top-right)
+    this.logoutBtn = this.add.text(this.scale.width - 20, 20, "LOGOUT", {
+      fontFamily: "Fredoka One",
+      fontSize: "18px",
+      color: "#ffffff",
+      backgroundColor: "#DC143C",
+      padding: { x: 12, y: 6 }
+    }).setOrigin(1, 0).setDepth(100).setInteractive({ useHandCursor: true });
+
+    this.logoutBtn.on("pointerover", () => this.logoutBtn.setStyle({ backgroundColor: "#B01030" }));
+    this.logoutBtn.on("pointerout", () => this.logoutBtn.setStyle({ backgroundColor: "#DC143C" }));
+    this.logoutBtn.on("pointerdown", () => this.handleLogout());
 
     // -----------------------------
     // LEVEL + SHOP SPRITES
@@ -154,6 +175,12 @@ class MapScene extends Phaser.Scene {
   openShopPanel() {
     if (this.shopOpen) return;
     this.shopOpen = true;
+
+    // Hide logout button while shop is open
+    if (this.logoutBtn) {
+      this.logoutBtn.setVisible(false);
+      this.logoutBtn.removeInteractive();
+    }
 
     // reset tracked UI list each time shop opens
     this.shopUi = [];
@@ -283,7 +310,7 @@ class MapScene extends Phaser.Scene {
       buyBtn.on("pointerover", () => buyBtn.setStyle({ backgroundColor: "#3BA8D8" }));
       buyBtn.on("pointerout", () => buyBtn.setStyle({ backgroundColor: "#4EC5F1" }));
 
-      buyBtn.on("pointerdown", () => {
+      buyBtn.on("pointerdown", async () => {
         if (buyBtn._busy) return;
         buyBtn._busy = true;
 
@@ -300,17 +327,58 @@ class MapScene extends Phaser.Scene {
           return;
         }
 
-        // Spend coins
-        this.coins -= pack.cost;
-        if (this.coinText) this.coinText.setText(`Coins: ${this.coins}`);
-        coinLabel.setText(`Coins: ${this.coins}`);
+        // Call backend API to buy health
+        const token = localStorage.getItem('authToken');
+        let apiSuccess = false;
 
-        // Apply permanent HP upgrade to gameData
-        if (gameData.user) {
-          gameData.user.coins = this.coins;
-          gameData.user.max_hp = (gameData.user.max_hp || 100) + pack.hp;
-          console.log(`Bought ${pack.id}: +${pack.hp} HP. New max HP: ${gameData.user.max_hp}`);
+        if (token && token !== 'local-user-token') {
+          try {
+            const response = await fetch(`http://localhost:8000/api/buy-health?amount=${pack.hp}&cost=${pack.cost}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${token}`
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('Buy health API response:', data);
+
+              // Update local state with API response
+              this.coins = data.new_coins;
+              this.playerMaxHP = data.new_max_hp;
+              apiSuccess = true;
+
+              // Sync with gameData
+              if (gameData.user) {
+                gameData.user.coins = data.new_coins;
+                gameData.user.max_hp = data.new_max_hp;
+              }
+            } else {
+              console.error('Buy health API failed:', response.status);
+            }
+          } catch (error) {
+            console.error('Failed to call buy-health API:', error);
+          }
         }
+
+        // Fallback to local update if API failed or using local auth
+        if (!apiSuccess) {
+          this.coins -= pack.cost;
+          this.playerMaxHP = (this.playerMaxHP || 100) + pack.hp;
+
+          if (gameData.user) {
+            gameData.user.coins = this.coins;
+            gameData.user.max_hp = this.playerMaxHP;
+          }
+        }
+
+        // Update UI
+        if (this.coinText) this.coinText.setText(`Coins: ${this.coins}`);
+        if (this.hpText) this.hpText.setText(`HP: ${this.playerMaxHP}`);
+        coinLabel.setText(`Coins: ${this.coins}`);
+        console.log(`Bought ${pack.id}: +${pack.hp} HP. New max HP: ${this.playerMaxHP}`);
 
         // ADDED feedback then revert (repeatable)
         buyBtn.setText("ADDED");
@@ -369,6 +437,7 @@ class MapScene extends Phaser.Scene {
         if (obj && obj.destroy) {
           obj.destroy();
         }
+
       });
       this.shopUi = [];
     }
@@ -377,6 +446,13 @@ class MapScene extends Phaser.Scene {
     this.closeShopBtn = null;
     this.closeShopBtnBottom = null;
 
+    // Show logout button again
+    if (this.logoutBtn) {
+      this.logoutBtn.setVisible(true);
+      this.logoutBtn.setInteractive({ useHandCursor: true });
+    }
+
+    //test
     // Re-enable level sprite interactivity (safety measure)
     if (this.levelSprites && this.levelSprites.length) {
       this.levelSprites.forEach(sprite => {
@@ -385,6 +461,16 @@ class MapScene extends Phaser.Scene {
         }
       });
     }
+  }
+
+  handleLogout() {
+    // Clear auth token and user data
+    localStorage.removeItem('authToken');
+    gameData.user = null;
+    gameData.isLoggedIn = false;
+
+    // Go back to menu scene
+    this.scene.start('MenuScene');
   }
 
   // -----------------------------
