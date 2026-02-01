@@ -11,6 +11,11 @@ class MenuScene extends Phaser.Scene {
 
         //Map Background
         this.load.image("map", "assets/images/map/map.png");
+
+        //Clouds for Map
+        this.load.image("cloud1Sprite", "assets/images/cloud1.png");
+        this.load.image("cloud2Sprite", "assets/images/cloud2.png");
+
         // Level icons / buttons
         this.load.image("level1Sprite", "assets/images/level1.png");
         this.load.image("level2Sprite", "assets/images/level2.png");
@@ -18,13 +23,19 @@ class MenuScene extends Phaser.Scene {
         this.load.image("level4Sprite", "assets/images/level4.png");
         this.load.image("level5Sprite", "assets/images/level5.png");
 
+
         //Battle Backgrounds
         this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
+        this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.png');
 
-        //Player
+        //Player & Pet
+        this.load.image('player', 'assets/images/player/player.png');
+        this.load.image('pet', 'assets/images/player/pet_cat.png');
 
         //Enemies 
-    
+        this.load.image('kingscourt_enemy', 'assets/images/enemies/enemy_kingscourt.png');
+        this.load.image('frostpeak_enemy', 'assets/images/enemies/enemy_FrostPeak.png');
+
         this.load.image("shopSprite", "assets/images/shop.png");
     // Optional: background, UI, sounds
     // this.load.image("mapBg", "assets/map-bg.png");
