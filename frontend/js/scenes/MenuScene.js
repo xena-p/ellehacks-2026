@@ -548,19 +548,22 @@ class MenuScene extends Phaser.Scene {
         const submitBtn = this.formElement.getChildByName('submit-btn');
 
         try {
-            // TODO: Replace with actual API call
-            // const response = await fetch('/api/login/', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ username, password })
-            // });
-            // const data = await response.json();
+            // Call Django Ninja API login endpoint
+            const response = await fetch(`http://localhost:8000/api/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
 
-            // For now, simulate successful login
-            console.log('Login attempt:', { username, password });
+            console.log('Login response:', data);
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                return;
+            }
+
+            // Store the auth token for future API calls
+            localStorage.setItem('authToken', data.token);
 
             // Store user data
             gameData.user = {
@@ -592,19 +595,19 @@ class MenuScene extends Phaser.Scene {
         const errorDiv = this.formElement.getChildByID('error-message');
 
         try {
-            // TODO: Replace with actual API call
-            // const response = await fetch('/api/register/', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ username, password })
-            // });
-            // const data = await response.json();
+            // Call Django Ninja API signup endpoint
+            const response = await fetch(`http://localhost:8000/api/auth/signup?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
 
-            // For now, simulate successful registration
-            console.log('Register attempt:', { username, password });
+            console.log('Register response:', data);
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                return;
+            }
 
             // Show success and switch to login
             errorDiv.style.color = '#2E7D32';
