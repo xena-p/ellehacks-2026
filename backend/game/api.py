@@ -32,6 +32,25 @@ def get_math_question(request):
         "options": [6, 8, 9, 10]
     }
 
+@api.post("/buy-health", auth=TokenAuth())
+def buy_health(request, amount: int, cost: int):
+    """
+    Permanently increases the player's max HP by 'amount' if they have enough coins.
+    """
+    player = request.auth
+
+    if player.coins < cost:
+        return {"error": "Not enough coins"}, 400
+
+    # Deduct coins and increase max HP
+    player.coins -= cost
+    player.max_hp += amount
+    player.save()
+
+    return {
+        "new_coins": player.coins,
+        "new_max_hp": player.max_hp  # send back to frontend
+    }
 
 @api.get("/generate-quiz", response=QuestionSchema, auth=TokenAuth())
 def get_quiz_question(request):
@@ -109,7 +128,7 @@ def get_player(request):
     player = request.auth
     return {
         "level": player.level,
-        "max_hp": player.get_max_hp(),
+        "max_hp": player.max_hp,
         "coins": player.coins,
         "wins": player.wins
     }
