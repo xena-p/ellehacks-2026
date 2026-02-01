@@ -24,21 +24,27 @@ class MapScene extends Phaser.Scene {
      { key: "shopScene", spriteKey: "shopSprite", unlocked: true, x: 770, y: 630 }
   ];
 
-  levels.forEach((level, index) => {
-    const x = 150 + index * 150;
-    const y = 300;
-
+  levels.forEach((level) => {
     const sprite = this.add.sprite(level.x, level.y, level.spriteKey);
 
     if (!level.unlocked) {
       sprite.setTint(0x555555);
+      sprite.setAlpha(0.7);
       sprite.disableInteractive();
-    } else {
-      sprite.setInteractive({ useHandCursor: true });
-      sprite.on("pointerdown", () => this.scene.start(level.key));
+      return;
+    } 
+    
+    sprite.setInteractive({ useHandCursor: true });
+    sprite.on("pointerdown", () => {
+        if (level.spriteKey === "level1Sprite"){
+            this.scene.start("BattleScene");
+        } else{
+            console.log("This level isn't implemented yet.");
+        }
+    });
       sprite.on("pointerover", () => sprite.setScale(1.1));
       sprite.on("pointerout", () => sprite.setScale(1));
-    }
+    
   });
 }
 }
