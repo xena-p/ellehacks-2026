@@ -204,32 +204,33 @@ class BattleScene extends Phaser.Scene {
     
 
     createBackground() {
+        // Map area names to background and label assets
+        const areaAssets = {
+            "Level1": { bg: "kingscourts_bg", label: "kingscourts_label" },
+            "Level2": { bg: "frostpeak_bg", label: "frostpeak_label" },
+            "Level3": { bg: "cloudspire_bg", label: "cloudspire_label" },
+            "Level4": { bg: "ashbound_bg", label: "ashbound_label" },
+            "Level5": { bg: "havenfall_bg", label: "havenfall_label" }
+        };
 
-       // background image (already preloaded)
-    this.add.image(0, 0, "kingscourts_bg")
-        .setOrigin(0, 0);
+        // Get assets for current area, default to King's Court
+        const assets = areaAssets[this.areaName] || areaAssets["Level1"];
 
-    // area name text stays
-    this.add.image(this.cameras.main.centerX, 75, "kingscourts_label")
-    .setOrigin(0.5)
-    .setScale(1.0);
+        // Background image
+        this.add.image(0, 0, assets.bg).setOrigin(0, 0);
 
-    // this.add.text(this.cameras.main.centerX, 30, this.areaName, {
-    //     fontFamily: 'Fredoka One',
-    //     fontSize: '28px',
-    //     color: '#ffffff',
-    //     stroke: '#000000',
-    //     strokeThickness: 4
-    // }).setOrigin(0.5);
+        // Area label
+        this.add.image(this.cameras.main.centerX, 75, assets.label)
+            .setOrigin(0.5)
+            .setScale(1.0);
     }
 
     createCharacters() {
         const centerY = this.cameras.main.centerY + 50;
-        const labelY = centerY - 300;    
+        const labelY = centerY - 300;
 
         this.playerSprite = this.add.image(150, centerY, "player");
         this.playerSprite.setScale(0.4);
-
 
         // Player label
         this.add.text(190, labelY, gameData.user?.username || 'Player', {
@@ -264,9 +265,21 @@ class BattleScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // Enemy (right side) - placeholder rectangle
-       this.enemySprite = this.add.image(this.cameras.main.width - 250, centerY, "kingscourt_enemy");
-       this.enemySprite.setScale(1.0); // tweak this
+        // Map area names to enemy sprites
+        const enemySprites = {
+            "Level1": "kingscourt_enemy",
+            "Level2": "frostpeak_enemy",
+            "Level3": "cloudspire_enemy",
+            "Level4": "ashbound_enemy",
+            "Level5": "havenfall_enemy"
+        };
+
+        // Get enemy sprite for current area, default to kingscourt
+        const enemySpriteKey = enemySprites[this.areaName] || "kingscourt_enemy";
+
+        // Enemy (right side)
+        this.enemySprite = this.add.image(this.cameras.main.width - 250, centerY, enemySpriteKey);
+        this.enemySprite.setScale(1.0);
 
         // Enemy label
         this.add.text(this.cameras.main.width - 180, labelY, this.currentEnemy.name, {
