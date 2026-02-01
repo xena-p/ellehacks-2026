@@ -14,6 +14,7 @@ class MapScene extends Phaser.Scene {
     this.shopTitle = null;
     this.closeShopBtn = null;
     this.closeShopBtnBottom = null;
+    this.levelSprites = [];
 
     // Fetch player data then build the map
     this.fetchPlayerData().then(() => {
@@ -98,6 +99,9 @@ class MapScene extends Phaser.Scene {
       { key: "ShopPanel", spriteKey: "shopSprite", levelRequired: 0, x: 770, y: 630 }
     ];
 
+    // Store level sprites for later reference
+    this.levelSprites = [];
+
     levels.forEach((level) => {
       const sprite = this.add.sprite(level.x, level.y, level.spriteKey);
 
@@ -107,9 +111,11 @@ class MapScene extends Phaser.Scene {
       if (!isUnlocked) {
         sprite.setTint(0x555555);
         sprite.setAlpha(0.7);
-        sprite.disableInteractive();
         return;
       }
+
+      // Store reference to interactive sprites
+      this.levelSprites.push(sprite);
 
       sprite.setInteractive({ useHandCursor: true });
 
@@ -347,19 +353,38 @@ class MapScene extends Phaser.Scene {
     if (!this.shopOpen) return;
     this.shopOpen = false;
 
-    // Destroy overlay/panel separately
-    if (this.shopOverlay) { this.shopOverlay.destroy(); this.shopOverlay = null; }
-    if (this.shopPanel) { this.shopPanel.destroy(); this.shopPanel = null; }
+    // Destroy overlay and panel
+    if (this.shopOverlay) {
+      this.shopOverlay.destroy();
+      this.shopOverlay = null;
+    }
+    if (this.shopPanel) {
+      this.shopPanel.destroy();
+      this.shopPanel = null;
+    }
 
     // Destroy everything tracked in shopUi
     if (this.shopUi && this.shopUi.length) {
-      this.shopUi.forEach(obj => obj && obj.destroy && obj.destroy());
+      this.shopUi.forEach(obj => {
+        if (obj && obj.destroy) {
+          obj.destroy();
+        }
+      });
       this.shopUi = [];
     }
 
     this.shopTitle = null;
     this.closeShopBtn = null;
     this.closeShopBtnBottom = null;
+
+    // Re-enable level sprite interactivity (safety measure)
+    if (this.levelSprites && this.levelSprites.length) {
+      this.levelSprites.forEach(sprite => {
+        if (sprite && sprite.setInteractive) {
+          sprite.setInteractive({ useHandCursor: true });
+        }
+      });
+    }
   }
 
   // -----------------------------
