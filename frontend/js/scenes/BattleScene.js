@@ -51,11 +51,26 @@ class BattleScene extends Phaser.Scene {
     }
 
     preload() {
-        // For now, we'll use Phaser graphics for placeholders
-        // Later, load actual sprites here:
-        // this.load.spritesheet('player', 'frontend/assets/images/player/player.png', { frameWidth: 64, frameHeight: 64 });
-        // this.load.spritesheet('enemy', 'frontend/assets/images/enemies/enemy.png', { frameWidth: 64, frameHeight: 64 });
-        // this.load.image('battle-bg', 'frontend/assets/images/backgrounds/battle-bg.png');
+        // Load sprites to avoid loading on the fly and potential memory waste
+        this.load.image('player', 'frontend/assets/images/player/player.png');
+        this.load.image('pet', 'frontend/assets/images/pet/pet.png');
+        this.load.image('kingscourt_enemy', 'frontend/assets/images/enemies/kingscourt_enemy.png');
+        this.load.image('frostpeak_enemy', 'frontend/assets/images/enemies/frostpeak_enemy.png');
+        this.load.image('cloudspire_enemy', 'frontend/assets/images/enemies/cloudspire_enemy.png');
+        this.load.image('ashbound_enemy', 'frontend/assets/images/enemies/ashbound_enemy.png');
+        this.load.image('havenfall_enemy', 'frontend/assets/images/enemies/havenfall_enemy.png');
+        this.load.image('shop_logo', 'frontend/assets/images/icons/shop_logo.png');
+        this.load.image('question_logo', 'frontend/assets/images/icons/question_logo.png');
+        this.load.image('kingscourts_bg', 'frontend/assets/images/backgrounds/kingscourts_bg.png');
+        this.load.image('frostpeak_bg', 'frontend/assets/images/backgrounds/frostpeak_bg.png');
+        this.load.image('cloudspire_bg', 'frontend/assets/images/backgrounds/cloudspire_bg.png');
+        this.load.image('ashbound_bg', 'frontend/assets/images/backgrounds/ashbound_bg.png');
+        this.load.image('havenfall_bg', 'frontend/assets/images/backgrounds/havenfall_bg.png');
+        this.load.image('kingscourts_label', 'frontend/assets/images/labels/kingscourts_label.png');
+        this.load.image('frostpeak_label', 'frontend/assets/images/labels/frostpeak_label.png');
+        this.load.image('cloudspire_label', 'frontend/assets/images/labels/cloudspire_label.png');
+        this.load.image('ashbound_label', 'frontend/assets/images/labels/ashbound_label.png');
+        this.load.image('havenfall_label', 'frontend/assets/images/labels/havenfall_label.png');
     }
 
     create() {
@@ -883,7 +898,7 @@ class BattleScene extends Phaser.Scene {
 }
 
     showQuestion() {
-        // Hardcoded questions - NO API CALL
+        // Hardcoded questions for now
         const questions = [
             { question: 'What is a good place to keep your money safe?', options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'], correct: 1, explanation: 'Banks are safe places to store money!' },
             { question: 'What does "saving money" mean?', options: ['Spending it all today', 'Keeping money for later', 'Giving it away', 'Hiding it forever'], correct: 1, explanation: 'Saving means keeping money for later!' },
@@ -1307,9 +1322,11 @@ class BattleScene extends Phaser.Scene {
                 const response = await fetch('http://localhost:8000/api/report-win', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`
-                    }
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: token
+                    })
                 });
 
                 if (response.ok) {
@@ -1395,11 +1412,7 @@ class BattleScene extends Phaser.Scene {
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
         continueBtn.on('pointerdown', () => {
-            //this.scene.start('MapScene');
+            this.scene.start('MapScene');
         });
-    }
-
-    getDifficultyNumber() {
-        return this.difficulty === 'easy' ? 1 : this.difficulty === 'medium' ? 2 : 3;
     }
 }
