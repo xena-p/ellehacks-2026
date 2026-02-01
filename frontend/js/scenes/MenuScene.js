@@ -266,7 +266,14 @@ class MenuScene extends Phaser.Scene {
         this.mascotContainer.setDepth(40);
 
         const mascot = this.add.graphics();
-
+        
+        // Legs
+        mascot.fillStyle(0xFFB6C1, 1);
+        mascot.fillRoundedRect(-40, 20, 18, 25, 5);
+        mascot.fillRoundedRect(-20, 17, 18, 25, 5);
+        mascot.fillRoundedRect(5, 25, 18, 25, 5);
+        mascot.fillRoundedRect(25, 17, 15, 20, 5);
+       
         // Main body (pink oval)
         mascot.fillStyle(0xFFB6C1, 1);
         mascot.fillEllipse(0, 0, 90, 70);
@@ -323,13 +330,6 @@ class MenuScene extends Phaser.Scene {
         // Coin slot on top
         mascot.fillStyle(0x333333, 1);
         mascot.fillRoundedRect(-20, -38, 40, 6, 3);
-
-        // Legs
-        mascot.fillStyle(0xFFB6C1, 1);
-        mascot.fillRoundedRect(-35, 25, 18, 25, 5);
-        mascot.fillRoundedRect(-10, 25, 18, 25, 5);
-        mascot.fillRoundedRect(15, 25, 18, 25, 5);
-        mascot.fillRoundedRect(40, 20, 15, 20, 5);
 
         // Curly tail
         mascot.lineStyle(4, 0xFF69B4, 1);
