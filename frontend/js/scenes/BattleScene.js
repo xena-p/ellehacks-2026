@@ -900,15 +900,101 @@ class BattleScene extends Phaser.Scene {
     showQuestion() {
         // Hardcoded questions for now
         const questions = [
-            { question: 'What is a good place to keep your money safe?', options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'], correct: 1, explanation: 'Banks are safe places to store money!' },
-            { question: 'What does "saving money" mean?', options: ['Spending it all today', 'Keeping money for later', 'Giving it away', 'Hiding it forever'], correct: 1, explanation: 'Saving means keeping money for later!' },
-            { question: 'If you have $10 and spend $3, how much do you have left?', options: ['$13', '$3', '$7', '$10'], correct: 2, explanation: '$10 - $3 = $7!' },
-            { question: 'What is a budget?', options: ['A type of piggy bank', 'A plan for spending money', 'Free money', 'A savings account'], correct: 1, explanation: 'A budget helps you plan spending!' },
-            { question: 'Why compare prices before buying?', options: ['It wastes time', 'To find the best deal', 'Prices are the same', 'Makes shopping harder'], correct: 1, explanation: 'Comparing prices saves money!' },
-            { question: 'What is interest in a savings account?', options: ['A fee you pay', 'Extra money the bank gives you', 'Your account number', 'The bank logo'], correct: 1, explanation: 'Interest is extra money the bank adds!' },
-            { question: 'What is a "need" vs a "want"?', options: ['They are the same', 'Needs are essentials, wants are extras', 'Wants are more important', 'Needs are only for adults'], correct: 1, explanation: 'Needs are essentials like food!' },
-            { question: 'What happens if you spend more than you have?', options: ['Nothing bad', 'You get more money', 'You go into debt', 'The store gives it free'], correct: 2, explanation: 'Spending more means debt!' }
-        ];
+
+  // ===== SAVINGS VILLAGE (Easy) =====
+  {
+    question: 'What should you do when you get money?',
+    options: ['Spend it all right away', 'Save some for later', 'Lose it', 'Hide it forever'],
+    correct: 1,
+    explanation: 'Saving some money helps you prepare for the future!'
+  },
+
+  {
+    question: 'What is a piggy bank used for?',
+    options: ['Eating snacks', 'Saving money', 'Playing games', 'Hiding toys'],
+    correct: 1,
+    explanation: 'A piggy bank helps you save your money safely.'
+  },
+
+  {
+    question: 'Which of these is a NEED?',
+    options: ['Candy', 'Video games', 'Food', 'Toys'],
+    correct: 2,
+    explanation: 'Food is something you need to live!'
+  },
+
+  {
+    question: 'If you save $1 every day, what happens?',
+    options: ['You lose money', 'Your money grows', 'Nothing changes', 'You spend more'],
+    correct: 1,
+    explanation: 'Saving a little every day adds up!'
+  },
+
+  // ===== BUDGET CITY (Medium) =====
+  {
+    question: 'What is a budget?',
+    options: ['A wish list', 'A plan for money', 'Free money', 'A game'],
+    correct: 1,
+    explanation: 'A budget helps you plan how to use your money wisely.'
+  },
+
+  {
+    question: 'You have $10. A toy costs $7. How much money is left?',
+    options: ['$3', '$7', '$10', '$17'],
+    correct: 0,
+    explanation: '$10 minus $7 equals $3.'
+  },
+
+  {
+    question: 'Why should you compare prices before buying?',
+    options: ['To waste time', 'To spend more money', 'To find the best deal', 'Because adults say so'],
+    correct: 2,
+    explanation: 'Comparing prices helps you save money!'
+  },
+
+  {
+    question: 'What happens if you spend more money than you have?',
+    options: ['You get richer', 'You go into debt', 'Nothing happens', 'You win a prize'],
+    correct: 1,
+    explanation: 'Spending more than you have can cause problems.'
+  },
+
+  // ===== INVESTMENT ISLAND (Hard but kid-friendly) =====
+  {
+    question: 'What does it mean to invest money?',
+    options: ['Hide it', 'Spend it all', 'Use it to grow more money', 'Lose it'],
+    correct: 2,
+    explanation: 'Investing means using money to try to make more money over time.'
+  },
+
+  {
+    question: 'Why is saving money for the future important?',
+    options: ['So you never have fun', 'For emergencies and goals', 'Because money disappears', 'To give it away'],
+    correct: 1,
+    explanation: 'Saving helps you be ready for surprises and big goals!'
+  },
+
+  {
+    question: 'Which choice shows smart money behavior?',
+    options: [
+      'Buying everything you see',
+      'Saving and planning',
+      'Spending without thinking',
+      'Borrowing for toys'
+    ],
+    correct: 1,
+    explanation: 'Planning and saving shows smart money choices!'
+  },
+
+  {
+    question: 'If you earn money by helping at home, what should you do?',
+    options: ['Spend it all', 'Save some and spend some', 'Lose it', 'Forget about it'],
+    correct: 1,
+    explanation: 'A good balance is saving some and enjoying some!'
+  }
+
+];
+
         this.currentQuestion = questions[Math.floor(Math.random() * questions.length)];
         console.log('Using hardcoded question:', this.currentQuestion.question);
 
