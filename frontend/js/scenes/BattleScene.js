@@ -388,7 +388,7 @@ class BattleScene extends Phaser.Scene {
     createCoinDisplay() {
         // Coin display (top-center)
         this.coinBg = this.add.graphics();
-        this.coinBg.fillStyle(0x000000, 0.5);
+        this.coinBg.fillStyle(0x192D47, 1);
         this.coinBg.fillRoundedRect(this.cameras.main.centerX - 60, 10, 120, 35, 8);
 
         // Coin icon (circle)
@@ -399,12 +399,12 @@ class BattleScene extends Phaser.Scene {
         this.coinIcon.strokeCircle(this.cameras.main.centerX - 40, 27, 12);
 
         this.coinText = this.add.text(this.cameras.main.centerX + 10, 27, this.playerCoins.toString(), {
-            fontFamily: 'Fredoka One',
-            fontSize: '20px',
+            fontFamily: 'VT323',
+            fontSize: '28px',
             color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setScale(1.5);
     }
 
     openShop() {
