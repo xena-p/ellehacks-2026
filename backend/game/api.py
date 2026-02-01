@@ -104,6 +104,16 @@ def start_game(request):
         "map_level": run.map_level
     }
 
+@api.get("/player", auth=TokenAuth())
+def get_player(request):
+    player = request.auth
+    return {
+        "level": player.level,
+        "max_hp": player.get_max_hp(),
+        "coins": player.coins,
+        "wins": player.wins
+    }
+
 @api.post("/shop/buy-spell", auth=TokenAuth())
 def buy_spell(request, spell_id: int, game_run_id: int):
     user = request.auth
