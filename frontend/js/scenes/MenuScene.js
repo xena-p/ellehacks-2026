@@ -53,14 +53,18 @@ class MenuScene extends Phaser.Scene {
         this.load.image('player', 'assets/images/player/player.png');
         this.load.image('pet', 'assets/images/player/pet_cat.png');
 
-        //Enemies 
+        //Enemies
         this.load.image('kingscourt_enemy', 'assets/images/enemies/enemy_kingscourt.png');
         this.load.image('frostpeak_enemy', 'assets/images/enemies/enemy_FrostPeak.png');
         this.load.image('cloudspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
+<<<<<<< HEAD
         this.load.image('Ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
         this.load.image('Havenfall_enemy', 'assets/images/enemies/enemy_Havenfall.png');
         this.load.image('cloudspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
+=======
+>>>>>>> 5a40ecff20d723b25a7ead1da8593d88036d3903
         this.load.image('ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
+        this.load.image('havenfall_enemy', 'assets/images/enemies/enemy_Havenfall.png');
 
         this.load.image("shopSprite", "assets/images/shop.png");
     // Optional: background, UI, sounds
