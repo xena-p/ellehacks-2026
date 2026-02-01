@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.db import models
 from django.conf import settings
 # Create your models here.
 
@@ -18,21 +17,18 @@ LEVEL_THRESHOLDS = {
 }
 
 class Player(AbstractUser):
-    coins = models.IntegerField(default=0)
+    coins = models.IntegerField(default=100) #start with 100 coins
     wins = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     MAX_LEVEL = 4
+    
     class Meta:
         # This helps fix some collision errors
         verbose_name = 'Player'
         verbose_name_plural = 'Players'
 
-    def get_max_hp(self):
-        base_hp = 100
-        upgrades = UserPermanentUpgrade.objects.filter(user=self)
-        bonus = sum(u.upgrade.hp_bonus for u in upgrades)
-        return base_hp + bonus
+
     
     def get_attack_power(self):
         """Calculate attack damage (base + equipment)"""
@@ -40,33 +36,35 @@ class Player(AbstractUser):
         
         return base_attack
     
-    def calculate_level(self):
-        new_level = self.level
-        for level, required_wins in LEVEL_THRESHOLDS.items():
-            if self.wins >= required_wins:
-                new_level = level
-        return new_level
+    def recalculate_level(self):
+        for lvl, wins_required in LEVEL_THRESHOLDS.items():
+            if self.wins >= wins_required:
+                self.level = lvl
+        self.save()
 
-    def add_win(self, coins_earned=0):
+
+    def add_win(self, coins_earned: int):
         self.wins += 1
         self.coins += coins_earned
-
-        leveled_up = False
-        if self.level < self.MAX_LEVEL:
-            self.level += 1
-            leveled_up = True
-        self.save()
-        return leveled_up
+        old_level = self.level
+        self.recalculate_level()
+        return self.level > old_level  # did they level up?
+        
+    def can_access_map(self, map_level: int):
+        return self.level >= map_level
     
-    def can_access_area(self, area_level):
-        #map access
-        return self.level >= area_level
+    def get_max_hp(self):
+        base_hp = 100
+        upgrades = self.permanent_upgrades.all()
+        bonus = sum(u.upgrade.hp_bonus for u in upgrades)
+        return base_hp + bonus
+
     
     def buy_upgrade(user, upgrade_id):
         upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
 
         if user.coins < upgrade.cost:
-            raise ValueError("Not enough coins")
+            raise ("Not enough coins")
 
         UserPermanentUpgrade.objects.create(
             user=user,
@@ -81,56 +79,81 @@ class Player(AbstractUser):
         return f"{self.username} (Level {self.level})"
 
 
-class PermanentUpgrade(models.Model): #possible upgrades that can be purchased
+class PermanentUpgrade(models.Model):
     name = models.CharField(max_length=100)
     hp_bonus = models.IntegerField(default=0)
     cost = models.IntegerField()
 
-class UserPermanentUpgrade(models.Model): #the upgrades that a user has purchased
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.name
+
+
+class UserPermanentUpgrade(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="permanent_upgrades",
+        on_delete=models.CASCADE
+    )
     upgrade = models.ForeignKey(PermanentUpgrade, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ("user", "upgrade")
 
-class Spell(models.Model): #for the temp spells
+class Spell(models.Model):
     EFFECT_CHOICES = [
         ("heal", "Heal"),
         ("damage", "Damage"),
         ("shield", "Shield"),
-        ("buff_attack", "Buff Attack"),
-        ("buff_hp", "Buff Max HP"),
     ]
 
     name = models.CharField(max_length=100)
-    effect = models.CharField(max_length=50)  # "heal", "double_damage"
+    effect = models.CharField(max_length=20, choices=EFFECT_CHOICES)
     value = models.IntegerField()
-    duration = models.IntegerField(default=0)  # turns (0 = instant)
+    duration = models.IntegerField(default=0)  # turns, 0 = instant
     cost = models.IntegerField()
+
+    def __str__(self):
+        return self.name
+
 
 class GameRun(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    map_level = models.IntegerField(default=1)
     current_hp = models.IntegerField()
-    started_at = models.DateTimeField(auto_now_add=True)
     active = models.BooleanField(default=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+
+    def end_run(self, won: bool):
+        self.active = False
+        self.save()
+
+        if won:
+            self.user.add_win(coins_earned=25)
 
 
 
 class GameRunSpell(models.Model):
-    game_run = models.ForeignKey(GameRun, on_delete=models.CASCADE)
+    game_run = models.ForeignKey(
+        GameRun, related_name="spells", on_delete=models.CASCADE
+    )
     spell = models.ForeignKey(Spell, on_delete=models.CASCADE)
     used = models.BooleanField(default=False)
 
 
-def use_spell(game_run, spell_id):
+
+def use_spell(game_run: GameRun, spell_id: int):
     run_spell = GameRunSpell.objects.get(
         game_run=game_run,
         spell_id=spell_id,
         used=False
     )
 
-    if run_spell.spell.effect == "heal":
-        game_run.current_hp += run_spell.spell.value
+    spell = run_spell.spell
+
+    if spell.effect == "heal":
+        game_run.current_hp += spell.value
+
+    # damage / shield handled in game engine logic
 
     run_spell.used = True
     run_spell.save()

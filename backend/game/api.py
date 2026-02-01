@@ -1,12 +1,17 @@
 from ninja import NinjaAPI, Schema
 from django.conf import settings
 from .gemini_utils import generate_question, QuestionSchema
+from .models import Player
+from .models import GameRun, Spell, PermanentUpgrade, UserPermanentUpgrade, GameRunSpell
+from .models import use_spell
+from django.contrib.auth import authenticate, login
+from ninja.security import django_auth
+from rest_framework.authtoken.models import Token
+from .auth import TokenAuth
 
 # Ensure only one NinjaAPI instance exists across different import contexts
-if not hasattr(settings, "ELLEHACKS_NINJA_API"):
-    settings.ELLEHACKS_NINJA_API = NinjaAPI()
+api = NinjaAPI() 
 
-api = settings.ELLEHACKS_NINJA_API
 
 class WinResponse(Schema):
     new_coins: int
@@ -14,11 +19,11 @@ class WinResponse(Schema):
     leveled_up: bool
     message: str
 
-@api.get("/hello")
+@api.get("/hello", auth=TokenAuth())
 def hello(request):
     return {"message": "Hello from your Game Backend!"}
 
-@api.get("/math_question")
+@api.get("/math_question", auth=TokenAuth())
 def get_math_question(request):
     return {
         "question": "5 + 3",
@@ -27,7 +32,7 @@ def get_math_question(request):
     }
 
 
-@api.get("/generate-quiz", response=QuestionSchema)
+@api.get("/generate-quiz", response=QuestionSchema, auth=TokenAuth())
 def get_quiz_question(request):
     if request.user.is_authenticated:
         player_level = request.user.level
@@ -39,7 +44,7 @@ def get_quiz_question(request):
         return generate_question(1)
     
 
-@api.post("/report-win", response=WinResponse)
+@api.post("/report-win", response=WinResponse, auth=TokenAuth())
 def report_win(request):
     if not request.user.is_authenticated:
          return api.create_response(request, {"detail": "Not logged in"}, status=401)
@@ -57,4 +62,101 @@ def report_win(request):
         "new_wins": player.wins,
         "leveled_up": leveled_up,
         "message": msg
+    }
+
+@api.post("/auth/signup")
+def signup(request, username: str, password: str):
+    if Player.objects.filter(username=username).exists():
+        return {"error": "Username taken"}
+
+    user = Player.objects.create_user(
+        username=username,
+        password=password
+    )
+    token, _ = Token.objects.get_or_create(user=user)
+    return {"success": True, "token": token.key}
+
+
+@api.post("/auth/login")
+def login_user(request, username: str, password: str):
+    user = authenticate(username=username, password=password)
+    if not user:
+        return {"error": "Invalid credentials"}
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return {"success": True, "token": token.key}
+
+@api.post("/game/start", auth=TokenAuth())
+def start_game(request):
+    user = request.user
+    map_level = user.level  # Start game at user's current level
+
+    if not user.can_access_map(map_level):
+        return {"error": "Map locked"}
+
+    run = GameRun.objects.create(
+        user=user,
+        map_level=map_level,
+        current_hp=user.get_max_hp()
+    )
+
+    return {
+        "game_run_id": run.id,
+        "starting_hp": run.current_hp,
+        "map_level": run.map_level
+    }
+
+@api.post("/shop/buy-spell", auth=TokenAuth())
+def buy_spell(request, spell_id: int, game_run_id: int):
+    user = request.user
+    spell = Spell.objects.get(id=spell_id)
+
+    if user.coins < spell.cost:
+        return {"error": "Not enough coins"}
+
+    run = GameRun.objects.get(id=game_run_id, user=user, active=True)
+
+    GameRunSpell.objects.create(game_run=run, spell=spell)
+    user.coins -= spell.cost
+    user.save()
+    return {"success": True, "coins": user.coins}
+
+@api.post("/shop/buy-upgrade", auth=TokenAuth())
+def buy_upgrade(request, upgrade_id: int):
+    user = request.user
+    upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
+
+    if user.coins < upgrade.cost:
+        return {"error": "Not enough coins"}
+
+    UserPermanentUpgrade.objects.create(user=user, upgrade=upgrade)
+    user.coins -= upgrade.cost
+    user.save()
+    return {"success": True, "coins": user.coins}
+
+@api.post("/game/use-spell", auth=TokenAuth())
+def api_use_spell(request, game_run_id: int, spell_id: int):
+    run = GameRun.objects.get(
+        id=game_run_id,
+        user=request.user,
+        active=True
+    )
+
+    use_spell(run, spell_id)
+    return {"current_hp": run.current_hp}
+
+@api.post("/game/end", auth=TokenAuth())
+def end_game(request, game_run_id: int, won: bool):
+    run = GameRun.objects.get(
+        id=game_run_id,
+        user=request.user,
+        active=True
+    )
+
+    run.end_run(won)
+
+    return {
+        "won": won,
+        "new_level": request.user.level,
+        "coins": request.user.coins
     }
