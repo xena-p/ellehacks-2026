@@ -100,6 +100,17 @@ def login_user(request, username: str, password: str):
     token, _ = Token.objects.get_or_create(user=user)
     return {"success": True, "token": token.key}
 
+
+@api.get("/player", auth=TokenAuth())
+def get_player(request):
+    player = request.auth
+    return {
+        "level": player.level,
+        "max_hp": player.max_hp,
+        "coins": player.coins,
+        "wins": player.wins
+    }
+
 @api.post("/game/start", auth=TokenAuth())
 def start_game(request):
     if not request.auth.is_authenticated:
@@ -123,15 +134,7 @@ def start_game(request):
         "map_level": run.map_level
     }
 
-@api.get("/player", auth=TokenAuth())
-def get_player(request):
-    player = request.auth
-    return {
-        "level": player.level,
-        "max_hp": player.max_hp,
-        "coins": player.coins,
-        "wins": player.wins
-    }
+
 
 @api.post("/shop/buy-spell", auth=TokenAuth())
 def buy_spell(request, spell_id: int, game_run_id: int):
