@@ -16,6 +16,13 @@ class MenuScene extends Phaser.Scene {
         this.load.image("level3Sprite", "assets/images/level3.png");
         this.load.image("level4Sprite", "assets/images/level4.png");
         this.load.image("level5Sprite", "assets/images/level5.png");
+
+        //Battle Backgrounds
+        this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
+
+        //Player
+
+        //Enemies 
     
         this.load.image("shopSprite", "assets/images/shop.png");
     // Optional: background, UI, sounds

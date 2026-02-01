@@ -32,7 +32,7 @@ class BattleScene extends Phaser.Scene {
     init(data) {
         // Receive data from MapScene
         this.difficulty = data.difficulty || 'easy';
-        this.areaName = data.area || 'Savings Village';
+        this.areaName = data.area || "King's Court";
 
         // Reset battle state
         this.battleState = 'shop'; // shop, battle, ended
@@ -216,49 +216,19 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBackground() {
-        // Create gradient background based on difficulty
-        const graphics = this.add.graphics();
 
-        let topColor, bottomColor;
-        switch(this.difficulty) {
-            case 'easy':
-                topColor = 0x87CEEB; // Light blue sky
-                bottomColor = 0x90EE90; // Light green grass
-                break;
-            case 'medium':
-                topColor = 0x708090; // Slate gray
-                bottomColor = 0x696969; // Dim gray
-                break;
-            case 'hard':
-                topColor = 0x2F4F4F; // Dark slate
-                bottomColor = 0x1a1a2e; // Dark purple
-                break;
-            default:
-                topColor = 0x87CEEB;
-                bottomColor = 0x90EE90;
-        }
+       // background image (already preloaded)
+    this.add.image(0, 0, "kingscourts_bg")
+        .setOrigin(0, 0);
 
-        // Draw gradient
-        const steps = 50;
-        const stepHeight = this.cameras.main.height / steps;
-        for (let i = 0; i < steps; i++) {
-            const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-                Phaser.Display.Color.IntegerToColor(topColor),
-                Phaser.Display.Color.IntegerToColor(bottomColor),
-                steps, i
-            );
-            graphics.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), 1);
-            graphics.fillRect(0, i * stepHeight, this.cameras.main.width, stepHeight + 1);
-        }
-
-        // Add area name
-        this.add.text(this.cameras.main.centerX, 30, this.areaName, {
-            fontFamily: 'Fredoka One',
-            fontSize: '28px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
+    // area name text stays
+    this.add.text(this.cameras.main.centerX, 30, this.areaName, {
+        fontFamily: 'Fredoka One',
+        fontSize: '28px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4
+    }).setOrigin(0.5);
     }
 
     createCharacters() {
