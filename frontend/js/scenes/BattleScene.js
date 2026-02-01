@@ -75,11 +75,37 @@ class BattleScene extends Phaser.Scene {
             this.createCoinDisplay();
             this.createShopIcon();
             this.createQuestionIcon();
+            this.createLogoutButton();
 
             // Start battle with first question
             this.battleState = 'battle';
             this.showQuestion();
         });
+    }
+
+    createLogoutButton() {
+        // Logout button (top-right, below coin display)
+        this.logoutBtn = this.add.text(this.cameras.main.width - 20, 60, "LOGOUT", {
+            fontFamily: 'Fredoka One',
+            fontSize: '14px',
+            color: '#ffffff',
+            backgroundColor: '#DC143C',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(1, 0).setDepth(100).setInteractive({ useHandCursor: true });
+
+        this.logoutBtn.on('pointerover', () => this.logoutBtn.setStyle({ backgroundColor: '#B01030' }));
+        this.logoutBtn.on('pointerout', () => this.logoutBtn.setStyle({ backgroundColor: '#DC143C' }));
+        this.logoutBtn.on('pointerdown', () => this.handleLogout());
+    }
+
+    handleLogout() {
+        // Clear auth token and user data
+        localStorage.removeItem('authToken');
+        gameData.user = null;
+        gameData.isLoggedIn = false;
+
+        // Go back to menu scene
+        this.scene.start('MenuScene');
     }
 
     async fetchPlayerData() {
@@ -422,6 +448,12 @@ class BattleScene extends Phaser.Scene {
         // Also hide the question icon while shop is open
         this.setQuestionIconVisible(false);
 
+        // Hide logout button while shop is open
+        if (this.logoutBtn) {
+            this.logoutBtn.setVisible(false);
+            this.logoutBtn.removeInteractive();
+        }
+
         // Create shop overlay
         this.shopOverlay = this.add.graphics();
         this.shopOverlay.fillStyle(0x000000, 0.7);
@@ -548,6 +580,12 @@ class BattleScene extends Phaser.Scene {
             item.buyBtn.destroy();
         });
 
+        // Show logout button again
+        if (this.logoutBtn) {
+            this.logoutBtn.setVisible(true);
+            this.logoutBtn.setInteractive({ useHandCursor: true });
+        }
+
         // Restore question modal if it was visible before opening shop
         if (this.questionWasVisible && this.questionOverlay) {
             this.questionOverlay.setVisible(true);
@@ -587,10 +625,15 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        // Purchase spell
+        // Purchase spell - deduct coins locally (spells are per-battle items)
         this.playerCoins -= spell.cost;
         this.purchasedSpells.push(spellKey);
         this.coinText.setText(this.playerCoins.toString());
+
+        // Sync coins with gameData
+        if (gameData.user) {
+            gameData.user.coins = this.playerCoins;
+        }
 
         // Update button
         buyBtn.setText('OWNED');
@@ -838,40 +881,20 @@ class BattleScene extends Phaser.Scene {
   });
 }
 
-    async showQuestion() {
-        // Fetch question from Gemini API via backend
-        try {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:8000/api/generate-quiz', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Token ${token}`
-                }
-            });
-
-            const data = await response.json();
-            console.log('Quiz question from API:', data);
-
-            // Find the index of the correct answer in options
-            const correctIndex = data.options.findIndex(opt => opt === data.answer);
-
-            this.currentQuestion = {
-                question: data.question,
-                options: data.options,
-                correct: correctIndex >= 0 ? correctIndex : 0,
-                explanation: data.explanation
-            };
-        } catch (error) {
-            console.error('Failed to fetch question from API, using fallback:', error);
-            // Fallback question if API fails
-            this.currentQuestion = {
-                question: 'What is a good place to keep your money safe?',
-                options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'],
-                correct: 1,
-                explanation: 'Banks are safe places to store money and can even help it grow with interest!'
-            };
-        }
+    showQuestion() {
+        // Hardcoded questions - NO API CALL
+        const questions = [
+            { question: 'What is a good place to keep your money safe?', options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'], correct: 1, explanation: 'Banks are safe places to store money!' },
+            { question: 'What does "saving money" mean?', options: ['Spending it all today', 'Keeping money for later', 'Giving it away', 'Hiding it forever'], correct: 1, explanation: 'Saving means keeping money for later!' },
+            { question: 'If you have $10 and spend $3, how much do you have left?', options: ['$13', '$3', '$7', '$10'], correct: 2, explanation: '$10 - $3 = $7!' },
+            { question: 'What is a budget?', options: ['A type of piggy bank', 'A plan for spending money', 'Free money', 'A savings account'], correct: 1, explanation: 'A budget helps you plan spending!' },
+            { question: 'Why compare prices before buying?', options: ['It wastes time', 'To find the best deal', 'Prices are the same', 'Makes shopping harder'], correct: 1, explanation: 'Comparing prices saves money!' },
+            { question: 'What is interest in a savings account?', options: ['A fee you pay', 'Extra money the bank gives you', 'Your account number', 'The bank logo'], correct: 1, explanation: 'Interest is extra money the bank adds!' },
+            { question: 'What is a "need" vs a "want"?', options: ['They are the same', 'Needs are essentials, wants are extras', 'Wants are more important', 'Needs are only for adults'], correct: 1, explanation: 'Needs are essentials like food!' },
+            { question: 'What happens if you spend more than you have?', options: ['Nothing bad', 'You get more money', 'You go into debt', 'The store gives it free'], correct: 2, explanation: 'Spending more means debt!' }
+        ];
+        this.currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+        console.log('Using hardcoded question:', this.currentQuestion.question);
 
         this.selectedAnswer = null; // Track selected answer
 
@@ -1317,6 +1340,12 @@ class BattleScene extends Phaser.Scene {
     }
 
     showResultOverlay(victory, coinsWon) {
+        // Hide logout button during result overlay
+        if (this.logoutBtn) {
+            this.logoutBtn.setVisible(false);
+            this.logoutBtn.removeInteractive();
+        }
+
         // Overlay
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
