@@ -454,6 +454,8 @@ class MenuScene extends Phaser.Scene {
         shadow.fillStyle(0x000000, 0.15);
         shadow.fillRoundedRect(x - cardWidth/2 + 8, y - cardHeight/2 + 8, cardWidth, cardHeight, 16);
 
+        //test
+    
         // Create main card
         const card = this.add.graphics();
 
