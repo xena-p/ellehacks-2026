@@ -64,10 +64,6 @@ class MenuScene extends Phaser.Scene {
         this.load.image('havenfall_enemy', 'assets/images/enemies/enemy_Havenfall.png');
 
         this.load.image("shopSprite", "assets/images/shop.png");
-
-        // Logo/Favicon
-        this.load.image('logo', 'assets/images/favicon.png');
-
     // Optional: background, UI, sounds
     // this.load.image("mapBg", "assets/map-bg.png");
     // this.load.audio("correct", "assets/correct.mp3");
@@ -76,12 +72,6 @@ class MenuScene extends Phaser.Scene {
     create() {
         // Create the sky background
         this.createBackground();
-
-        // Add logo at top left
-        this.logo = this.add.image(300, 80, 'logo')
-            .setOrigin(0.5)
-            .setScale(0.15)
-            .setDepth(100);
 
         // Create the animated game title
         this.createGameTitle();
@@ -266,7 +256,14 @@ class MenuScene extends Phaser.Scene {
         this.mascotContainer.setDepth(40);
 
         const mascot = this.add.graphics();
-
+        
+        // Legs
+        mascot.fillStyle(0xFFB6C1, 1);
+        mascot.fillRoundedRect(-40, 20, 18, 25, 5);
+        mascot.fillRoundedRect(-20, 17, 18, 25, 5);
+        mascot.fillRoundedRect(5, 25, 18, 25, 5);
+        mascot.fillRoundedRect(25, 17, 15, 20, 5);
+       
         // Main body (pink oval)
         mascot.fillStyle(0xFFB6C1, 1);
         mascot.fillEllipse(0, 0, 90, 70);
@@ -323,13 +320,6 @@ class MenuScene extends Phaser.Scene {
         // Coin slot on top
         mascot.fillStyle(0x333333, 1);
         mascot.fillRoundedRect(-20, -38, 40, 6, 3);
-
-        // Legs
-        mascot.fillStyle(0xFFB6C1, 1);
-        mascot.fillRoundedRect(-35, 25, 18, 25, 5);
-        mascot.fillRoundedRect(-10, 25, 18, 25, 5);
-        mascot.fillRoundedRect(15, 25, 18, 25, 5);
-        mascot.fillRoundedRect(40, 20, 15, 20, 5);
 
         // Curly tail
         mascot.lineStyle(4, 0xFF69B4, 1);

@@ -318,10 +318,10 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(20, 50, 'Your HP', {
-            fontFamily: 'Fredoka One',
-            fontSize: '18px',
-            color: '#ffffff',
+        this.add.text(20, 40, 'Your HP', {
+            fontFamily: 'VT323',
+            fontSize: '26px',
+            color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
         });
@@ -343,10 +343,10 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(enemyBarX, 50, 'Enemy HP', {
-            fontFamily: 'Fredoka One',
-            fontSize: '18px',
-            color: '#ffffff',
+        this.add.text(enemyBarX, 40, 'Enemy HP', {
+            fontFamily: 'VT323',
+            fontSize: '26px',
+            color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
         });
