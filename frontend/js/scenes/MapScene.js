@@ -46,5 +46,56 @@ class MapScene extends Phaser.Scene {
       sprite.on("pointerout", () => sprite.setScale(1));
     
   });
+
+  //Play cloud curtain animation
+    this.playCloudCurtains();
+  }
+    playCloudCurtains() {
+  this.input.enabled = false;
+
+  // ✅ YOU decide these start positions
+  const leftStartX = 7;
+  const leftStartY = 0;
+
+  const rightStartX = 1473; // you can change this
+  const rightStartY = 0;
+
+  const left = this.add.image(leftStartX, leftStartY, "cloud1Sprite")
+    .setOrigin(0, 0)
+    .setDepth(9999);
+
+  const right = this.add.image(rightStartX, rightStartY, "cloud2Sprite")
+    .setOrigin(1, 0)
+    .setDepth(9999);
+
+  // ✅ YOU decide how far they move
+  const leftEndX = leftStartX - 900;   // change this
+  const rightEndX = rightStartX + 900; // change this
+
+  this.tweens.add({
+    targets: left,
+    x: leftEndX,
+    duration: 2500,
+    ease: "Cubic.easeInOut"
+  });
+
+  this.tweens.add({
+    targets: right,
+    x: rightEndX,
+    duration: 2500,
+    ease: "Cubic.easeInOut",
+    onComplete: () => {
+      this.tweens.add({
+        targets: [left, right],
+        alpha: 0,
+        duration: 2000,
+        onComplete: () => {
+          left.destroy();
+          right.destroy();
+          this.input.enabled = true;
+        }
+      });
+    }
+  });
 }
 }
