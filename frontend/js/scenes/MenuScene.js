@@ -49,7 +49,7 @@ class MenuScene extends Phaser.Scene {
         //Enemies 
         this.load.image('kingscourt_enemy', 'assets/images/enemies/enemy_kingscourt.png');
         this.load.image('frostpeak_enemy', 'assets/images/enemies/enemy_FrostPeak.png');
-        this.load.image('clouspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
+        this.load.image('cloudspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
         this.load.image('ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
 
         this.load.image("shopSprite", "assets/images/shop.png");
