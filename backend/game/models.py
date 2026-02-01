@@ -20,6 +20,8 @@ class Player(AbstractUser):
     coins = models.IntegerField(default=100) #start with 100 coins
     wins = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
+    max_hp = models.IntegerField(default=100)
+
     
     created_at = models.DateTimeField(auto_now_add=True)
     MAX_LEVEL = 4
