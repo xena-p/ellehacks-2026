@@ -14,6 +14,7 @@ LEVEL_THRESHOLDS = {
     2: 1,
     3: 2,
     4: 3,
+    5: 5,
 }
 
 class Player(AbstractUser):
@@ -24,7 +25,7 @@ class Player(AbstractUser):
 
     
     created_at = models.DateTimeField(auto_now_add=True)
-    MAX_LEVEL = 4
+    MAX_LEVEL = 5
     
     class Meta:
         # This helps fix some collision errors
@@ -47,7 +48,7 @@ class Player(AbstractUser):
 
 
     def add_win(self, coins_earned: int):
-        if self.level < 5:
+        if self.level < 6:
             self.wins += 1
         self.coins += coins_earned
         old_level = self.level
