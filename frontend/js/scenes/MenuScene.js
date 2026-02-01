@@ -20,11 +20,16 @@ class MenuScene extends Phaser.Scene {
 
         //Battle Backgrounds
         this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
+        this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.png');
 
-        //Player
+        //Player & Pet
+        this.load.image('player', 'assets/images/player/player.png');
+        this.load.image('pet', 'assets/images/player/pet_cat.png');
 
         //Enemies 
-    
+        this.load.image('kingscourt_enemy', 'assets/images/enemies/enemy_kingscourt.png');
+        this.load.image('frostpeak_enemy', 'assets/images/enemies/enemy_FrostPeak.png');
+
         this.load.image("shopSprite", "assets/images/shop.png");
     // Optional: background, UI, sounds
     // this.load.image("mapBg", "assets/map-bg.png");
