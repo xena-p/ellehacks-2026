@@ -32,7 +32,7 @@ class BattleScene extends Phaser.Scene {
     init(data) {
         // Receive data from MapScene
         this.difficulty = data.difficulty || 'easy';
-        this.areaName = data.area || 'Savings Village';
+        this.areaName = data.area || "King's Court";
 
         // Reset battle state
         this.battleState = 'shop'; // shop, battle, ended
@@ -216,49 +216,19 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBackground() {
-        // Create gradient background based on difficulty
-        const graphics = this.add.graphics();
 
-        let topColor, bottomColor;
-        switch(this.difficulty) {
-            case 'easy':
-                topColor = 0x87CEEB; // Light blue sky
-                bottomColor = 0x90EE90; // Light green grass
-                break;
-            case 'medium':
-                topColor = 0x708090; // Slate gray
-                bottomColor = 0x696969; // Dim gray
-                break;
-            case 'hard':
-                topColor = 0x2F4F4F; // Dark slate
-                bottomColor = 0x1a1a2e; // Dark purple
-                break;
-            default:
-                topColor = 0x87CEEB;
-                bottomColor = 0x90EE90;
-        }
+       // background image (already preloaded)
+    this.add.image(0, 0, "kingscourts_bg")
+        .setOrigin(0, 0);
 
-        // Draw gradient
-        const steps = 50;
-        const stepHeight = this.cameras.main.height / steps;
-        for (let i = 0; i < steps; i++) {
-            const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-                Phaser.Display.Color.IntegerToColor(topColor),
-                Phaser.Display.Color.IntegerToColor(bottomColor),
-                steps, i
-            );
-            graphics.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), 1);
-            graphics.fillRect(0, i * stepHeight, this.cameras.main.width, stepHeight + 1);
-        }
-
-        // Add area name
-        this.add.text(this.cameras.main.centerX, 30, this.areaName, {
-            fontFamily: 'Fredoka One',
-            fontSize: '28px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
+    // area name text stays
+    this.add.text(this.cameras.main.centerX, 30, this.areaName, {
+        fontFamily: 'Fredoka One',
+        fontSize: '28px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4
+    }).setOrigin(0.5);
     }
 
     createCharacters() {
@@ -571,12 +541,21 @@ class BattleScene extends Phaser.Scene {
             item.buyBtn.destroy();
         });
 
-        // Show question modal again if it exists
-        if (this.questionOverlay) {
+        // Restore question modal if it was visible before opening shop
+        if (this.questionWasVisible && this.questionOverlay) {
             this.questionOverlay.setVisible(true);
             this.questionPanel.setVisible(true);
             this.questionText.setVisible(true);
-            this.answerButtons.forEach(btn => btn.setVisible(true));
+            if (this.submitBtn) this.submitBtn.setVisible(true);
+            if (this.questionCloseBtn) this.questionCloseBtn.setVisible(true);
+            if (this.answerButtons) {
+                this.answerButtons.forEach(btn => btn.setVisible(true));
+            }
+            this.questionVisible = true;
+            this.setQuestionIconVisible(false);
+        } else {
+            // Question wasn't visible, show the question icon
+            this.setQuestionIconVisible(true);
         }
     }
 
@@ -948,7 +927,7 @@ class BattleScene extends Phaser.Scene {
     selectAnswer(index) {
         // Deselect previous answer
         if (this.selectedAnswer !== null) {
-            this.answerButtons[this.selectedAnswer].setStyle({ backgroundColor: '#FFFDF8' });
+            this.answerButtons[this.selectedAnswer].setStyle({ backgroundColor: '#FFFDF8', color: '#3D3D3D' });
         }
 
         // Select new answer
@@ -1032,15 +1011,27 @@ class BattleScene extends Phaser.Scene {
     }
 
     clearQuestionModal() {
-        this.questionOverlay.destroy();
-        this.questionPanel.destroy();
-        this.questionText.destroy();
-        this.answerButtons.forEach(btn => btn.destroy());
+        if (this.questionOverlay) this.questionOverlay.destroy();
+        if (this.questionPanel) this.questionPanel.destroy();
+        if (this.questionText) this.questionText.destroy();
+        if (this.answerButtons) {
+            this.answerButtons.forEach(btn => btn.destroy());
+        }
         if (this.submitBtn) {
             this.submitBtn.destroy();
         }
+        if (this.questionCloseBtn) {
+            this.questionCloseBtn.destroy();
+        }
+        this.questionOverlay = null;
+        this.questionPanel = null;
+        this.questionText = null;
+        this.answerButtons = null;
+        this.submitBtn = null;
+        this.questionCloseBtn = null;
         this.selectedAnswer = null;
         this.submitBtnEnabled = false;
+        this.questionVisible = false;
     }
 
     playerAttack() {
