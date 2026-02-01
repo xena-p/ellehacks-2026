@@ -902,32 +902,54 @@ class BattleScene extends Phaser.Scene {
         const questions = [
 
   // ===== SAVINGS VILLAGE (Easy) =====
-  {
-    question: 'What should you do when you get money?',
-    options: ['Spend it all right away', 'Save some for later', 'Lose it', 'Hide it forever'],
+ {
+    question: 'Why is it good to think before spending money?',
+    options: ['So shopping takes longer', 'To avoid mistakes', 'Because money is boring', 'To spend more'],
     correct: 1,
-    explanation: 'Saving some money helps you prepare for the future!'
+    explanation: 'Thinking helps you make smarter choices.'
   },
 
   {
-    question: 'What is a piggy bank used for?',
-    options: ['Eating snacks', 'Saving money', 'Playing games', 'Hiding toys'],
-    correct: 1,
-    explanation: 'A piggy bank helps you save your money safely.'
-  },
-
-  {
-    question: 'Which of these is a NEED?',
-    options: ['Candy', 'Video games', 'Food', 'Toys'],
+    question: 'If two items are the same but one costs less, what should you do?',
+    options: ['Buy the expensive one', 'Buy both', 'Buy the cheaper one', 'Buy neither'],
     correct: 2,
-    explanation: 'Food is something you need to live!'
+    explanation: 'Choosing the cheaper item saves money!'
   },
 
   {
-    question: 'If you save $1 every day, what happens?',
-    options: ['You lose money', 'Your money grows', 'Nothing changes', 'You spend more'],
+    question: 'What should you do if you don’t need something right now?',
+    options: ['Buy it anyway', 'Save your money', 'Lose your money', 'Forget about money'],
     correct: 1,
-    explanation: 'Saving a little every day adds up!'
+    explanation: 'Saving money is smart when you don’t need something.'
+  },
+
+  {
+    question: 'Which choice helps your money last longer?',
+    options: ['Spending fast', 'Planning how to spend', 'Buying everything', 'Borrowing money'],
+    correct: 1,
+    explanation: 'Planning helps money last!'
+  },
+
+
+  {
+    question: 'A shop in the village sells the same sword for fewer coins. What should you do?',
+    options: ['Buy the more expensive one', 'Buy the cheaper one', 'Buy nothing forever', 'Drop your coins'],
+    correct: 1,
+    explanation: 'Finding the better deal saves coins!'
+  },
+
+   {
+    question: 'Why is it helpful to save coins for later levels?',
+    options: ['Coins are heavy', 'You may need them later', 'Coins disappear', 'To stop playing'],
+    correct: 1,
+    explanation: 'Saving helps you be ready for harder levels!'
+  },
+
+  {
+    question: 'You earn coins after winning a battle. What is a smart next step?',
+    options: ['Spend all coins', 'Save some for later battles', 'Lose them', 'Give them away'],
+    correct: 1,
+    explanation: 'Saving helps you prepare for future challenges.'
   },
 
   // ===== BUDGET CITY (Medium) =====
