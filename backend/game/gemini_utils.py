@@ -58,7 +58,7 @@ def generate_question(level: int) -> dict:
 
     try:
             response = client.models.generate_content(
-                model="gemini-1.5-flash-lite-001",
+                model="gemini-3-flash-preview",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
