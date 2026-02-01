@@ -23,7 +23,10 @@ class MenuScene extends Phaser.Scene {
         this.load.image("level4Sprite", "assets/images/level4.png");
         this.load.image("level5Sprite", "assets/images/level5.png");
 
-
+        //Heart Icons for Map Shop
+        this.load.image("healthSmall", "assets/images/smallHp.png");
+        this.load.image("healthMedium", "assets/images/medHp.png");
+        this.load.image("healthLarge", "assets/images/largeHp.png");
         //Battle Backgrounds
         this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
         this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.png');
@@ -43,6 +46,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
+        this.scene.start('MapScene');
         // Create the sky background
         this.createBackground();
 

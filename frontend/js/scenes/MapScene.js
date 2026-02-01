@@ -161,9 +161,27 @@ class MapScene extends Phaser.Scene {
 
     // 3 options (tweak anytime)
     const packs = [
-      { id: "small",  label: "Small Heart",  hp: 10, cost: 10 },
-      { id: "medium", label: "Medium Heart", hp: 25, cost: 22 },
-      { id: "large",  label: "Large Heart",  hp: 45, cost: 30 }
+        {
+            id: "small",
+            label: "Small Heart",
+            hp: 10,
+            cost: 10,
+            iconKey: "healthSmall"
+        },
+        {
+            id: "medium",
+            label: "Medium Heart",
+            hp: 25,
+            cost: 22,
+            iconKey: "healthMedium"
+        },
+        {
+            id: "large",
+            label: "Large Heart",
+            hp: 45,
+            cost: 30,
+            iconKey: "healthLarge"
+        }
     ];
 
     const packStartY = panelY + 110;
@@ -180,9 +198,9 @@ class MapScene extends Phaser.Scene {
       rowBg.strokeRoundedRect(panelX + 20, y, panelW - 40, 70, 12);
 
       // Heart icon
-      const icon = this.add.sprite(panelX + 55, y + 35, "addHealthSprite")
+      const icon = this.add.sprite(panelX + 55, y + 35, pack.iconKey)
         .setDepth(D3)
-        .setScale(0.75);
+        .setScale(0.50);
 
       // Text
       const nameText = this.add.text(panelX + 95, y + 16, pack.label, {
@@ -316,20 +334,20 @@ class MapScene extends Phaser.Scene {
     this.tweens.add({
       targets: left,
       x: leftEndX,
-      duration: 2500,
+      duration: 1900,
       ease: "Cubic.easeInOut"
     });
 
     this.tweens.add({
       targets: right,
       x: rightEndX,
-      duration: 2500,
+      duration: 1900,
       ease: "Cubic.easeInOut",
       onComplete: () => {
         this.tweens.add({
           targets: [left, right],
           alpha: 0,
-          duration: 100,
+          duration: 10,
           onComplete: () => {
             left.destroy();
             right.destroy();
