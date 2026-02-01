@@ -204,8 +204,8 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Add coin decorations on sides of title
-        const leftCoin = this.createTitleCoin(-180, -5);
-        const rightCoin = this.createTitleCoin(180, -5);
+        const leftCoin = this.createTitleCoin(-350, -5);
+        const rightCoin = this.createTitleCoin(350, -5);
 
         this.titleContainer.add([this.gameTitle, this.gameSubtitle, leftCoin, rightCoin]);
 
