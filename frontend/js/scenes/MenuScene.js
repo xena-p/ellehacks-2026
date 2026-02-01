@@ -31,6 +31,17 @@ class MenuScene extends Phaser.Scene {
         this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
         this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.png');
 
+        //Battle labels
+        this.load.image('kingscourts_label', "assets/images/level1.png");
+        this.load.image("frostpeak_label", "assets/images/level2.png");
+        this.load.image("cloudspire_label", "assets/images/level3.png");
+        this.load.image("ashbound_label", "assets/images/level4.png");
+        this.load.image("havenfall_label", "assets/images/level5.png");
+
+        // Battle screen icons
+        this.load.image('question_logo', "assets/images/icons/question_logo.png");
+        this.load.image('shop_logo', "assets/images/icons/shop_logo.png");
+
         //Player & Pet
         this.load.image('player', 'assets/images/player/player.png');
         this.load.image('pet', 'assets/images/player/pet_cat.png');
