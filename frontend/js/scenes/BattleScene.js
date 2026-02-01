@@ -59,29 +59,72 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
-        // Get player data from global gameData
-        this.playerMaxHP = gameData.user ? (100 + (gameData.user.level - 1) * 20) : 100;
+        // Fetch player data from API, then initialize the battle
+        this.fetchPlayerData().then(() => {
+            // Select random enemy based on difficulty
+            const enemyList = this.ENEMIES[this.difficulty];
+            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+            this.enemyMaxHP = this.currentEnemy.hp;
+            this.enemyHP = this.enemyMaxHP;
+
+            // Create scene elements
+            this.createBackground();
+            this.createCharacters();
+            this.createHealthBars();
+            this.createSpellBar();
+            this.createCoinDisplay();
+            this.createShopIcon();
+            this.createQuestionIcon();
+
+            // Start battle with first question
+            this.battleState = 'battle';
+            this.showQuestion();
+        });
+    }
+
+    async fetchPlayerData() {
+        try {
+            const token = localStorage.getItem('authToken');
+
+            if (token && token !== 'local-user-token') {
+                // Fetch from backend API
+                const response = await fetch('http://localhost:8000/api/player', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Player data from API:', data);
+
+                    // Sync with gameData and use API values
+                    this.playerMaxHP = data.max_hp;
+                    this.playerHP = this.playerMaxHP;
+                    this.playerCoins = data.coins;
+
+                    // Update global gameData to stay in sync
+                    if (gameData.user) {
+                        gameData.user.level = data.level;
+                        gameData.user.max_hp = data.max_hp;
+                        gameData.user.coins = data.coins;
+                        gameData.user.wins = data.wins;
+                    }
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch player data from API:', error);
+        }
+
+        // Fallback to local gameData if API fails or using local auth
+        console.log('Using local gameData for player stats');
+        // Use stored max_hp if available, otherwise calculate from level
+        this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
         this.playerHP = this.playerMaxHP;
-        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50; // Default 50 coins for testing
-
-        // Select random enemy based on difficulty
-        const enemyList = this.ENEMIES[this.difficulty];
-        this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
-        this.enemyMaxHP = this.currentEnemy.hp;
-        this.enemyHP = this.enemyMaxHP;
-
-        // Create scene elements
-        this.createBackground();
-        this.createCharacters();
-        this.createHealthBars();
-        this.createSpellBar();
-        this.createCoinDisplay();
-        this.createShopIcon();
-        this.createQuestionIcon();
-
-        // Start battle with first question
-        this.battleState = 'battle';
-        this.showQuestion();
+        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
     }
 
     createShopIcon() {
@@ -161,32 +204,33 @@ class BattleScene extends Phaser.Scene {
     
 
     createBackground() {
+        // Map area names to background and label assets
+        const areaAssets = {
+            "Level1": { bg: "kingscourts_bg", label: "kingscourts_label" },
+            "Level2": { bg: "frostpeak_bg", label: "frostpeak_label" },
+            "Level3": { bg: "cloudspire_bg", label: "cloudspire_label" },
+            "Level4": { bg: "ashbound_bg", label: "ashbound_label" },
+            "Level5": { bg: "havenfall_bg", label: "havenfall_label" }
+        };
 
-       // background image (already preloaded)
-    this.add.image(0, 0, "kingscourts_bg")
-        .setOrigin(0, 0);
+        // Get assets for current area, default to King's Court
+        const assets = areaAssets[this.areaName] || areaAssets["Level1"];
 
-    // area name text stays
-    this.add.image(this.cameras.main.centerX, 75, "kingscourts_label")
-    .setOrigin(0.5)
-    .setScale(1.0);
+        // Background image
+        this.add.image(0, 0, assets.bg).setOrigin(0, 0);
 
-    // this.add.text(this.cameras.main.centerX, 30, this.areaName, {
-    //     fontFamily: 'Fredoka One',
-    //     fontSize: '28px',
-    //     color: '#ffffff',
-    //     stroke: '#000000',
-    //     strokeThickness: 4
-    // }).setOrigin(0.5);
+        // Area label
+        this.add.image(this.cameras.main.centerX, 75, assets.label)
+            .setOrigin(0.5)
+            .setScale(1.0);
     }
 
     createCharacters() {
         const centerY = this.cameras.main.centerY + 50;
-        const labelY = centerY - 300;    
+        const labelY = centerY - 300;
 
         this.playerSprite = this.add.image(150, centerY, "player");
         this.playerSprite.setScale(0.4);
-
 
         // Player label
         this.add.text(190, labelY, gameData.user?.username || 'Player', {
@@ -221,9 +265,21 @@ class BattleScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // Enemy (right side) - placeholder rectangle
-       this.enemySprite = this.add.image(this.cameras.main.width - 250, centerY, "kingscourt_enemy");
-       this.enemySprite.setScale(1.0); // tweak this
+        // Map area names to enemy sprites
+        const enemySprites = {
+            "Level1": "kingscourt_enemy",
+            "Level2": "frostpeak_enemy",
+            "Level3": "cloudspire_enemy",
+            "Level4": "ashbound_enemy",
+            "Level5": "havenfall_enemy"
+        };
+
+        // Get enemy sprite for current area, default to kingscourt
+        const enemySpriteKey = enemySprites[this.areaName] || "kingscourt_enemy";
+
+        // Enemy (right side)
+        this.enemySprite = this.add.image(this.cameras.main.width - 250, centerY, enemySpriteKey);
+        this.enemySprite.setScale(1.0);
 
         // Enemy label
         this.add.text(this.cameras.main.width - 180, labelY, this.currentEnemy.name, {
@@ -262,10 +318,10 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(20, 50, 'Your HP', {
-            fontFamily: 'Fredoka One',
-            fontSize: '18px',
-            color: '#ffffff',
+        this.add.text(20, 40, 'Your HP', {
+            fontFamily: 'VT323',
+            fontSize: '26px',
+            color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
         });
@@ -287,10 +343,10 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.add.text(enemyBarX, 50, 'Enemy HP', {
-            fontFamily: 'Fredoka One',
-            fontSize: '18px',
-            color: '#ffffff',
+        this.add.text(enemyBarX, 40, 'Enemy HP', {
+            fontFamily: 'VT323',
+            fontSize: '26px',
+            color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
         });
@@ -332,7 +388,7 @@ class BattleScene extends Phaser.Scene {
     createCoinDisplay() {
         // Coin display (top-center)
         this.coinBg = this.add.graphics();
-        this.coinBg.fillStyle(0x000000, 0.5);
+        this.coinBg.fillStyle(0x192D47, 1);
         this.coinBg.fillRoundedRect(this.cameras.main.centerX - 60, 10, 120, 35, 8);
 
         // Coin icon (circle)
@@ -343,12 +399,12 @@ class BattleScene extends Phaser.Scene {
         this.coinIcon.strokeCircle(this.cameras.main.centerX - 40, 27, 12);
 
         this.coinText = this.add.text(this.cameras.main.centerX + 10, 27, this.playerCoins.toString(), {
-            fontFamily: 'Fredoka One',
-            fontSize: '20px',
+            fontFamily: 'VT323',
+            fontSize: '28px',
             color: '#FFD700',
             stroke: '#000000',
             strokeThickness: 2
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setScale(1.5);
     }
 
     openShop() {
@@ -764,6 +820,24 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
+    hitFlash(sprite, flashColor = 0xff0000, ms = 150) {
+  if (!sprite || !sprite.setTint) return;
+
+  sprite.setTint(flashColor);
+
+  this.tweens.add({
+    targets: sprite,
+    alpha: 0.2,
+    duration: ms / 3,
+    yoyo: true,
+    repeat: 2,
+    onComplete: () => {
+      sprite.setAlpha(1);
+      sprite.clearTint();
+    }
+  });
+}
+
     async showQuestion() {
         // Fetch question from Gemini API via backend
         try {
@@ -1028,6 +1102,9 @@ class BattleScene extends Phaser.Scene {
                     // Step 3: Impact! Shake enemy
                     this.shakeSprite(this.enemySprite, 10);
 
+                    //red tint
+                    this.hitFlash(this.enemySprite, 0xff0000, 150);
+
                     // Show damage number floating up
                     this.showDamageNumber(enemyX + 50, centerY - 30, damage, '#FF0000');
 
@@ -1124,6 +1201,9 @@ class BattleScene extends Phaser.Scene {
                     // Step 3: Impact! Shake player
                     this.shakeSprite(this.playerSprite, 10);
 
+                    //red tint:
+                    this.hitFlash(this.playerSprite, 0xff0000, 150);
+                   
                     // Show damage number floating up
                     this.showDamageNumber(playerX + 40, centerY - 30, damage, '#FF0000');
 
@@ -1172,10 +1252,61 @@ class BattleScene extends Phaser.Scene {
         if (gameData.user) {
             gameData.user.wins = (gameData.user.wins || 0) + 1;
             gameData.user.coins = this.playerCoins;
+
+            // Local level up logic (mirrors backend LEVEL_THRESHOLDS)
+            const wins = gameData.user.wins;
+            const oldLevel = gameData.user.level;
+            if (wins >= 4) gameData.user.level = 5;
+            else if (wins >= 3) gameData.user.level = 4;
+            else if (wins >= 2) gameData.user.level = 3;
+            else if (wins >= 1) gameData.user.level = 2;
+            else gameData.user.level = 1;
+
+            // Show level up message if leveled up locally
+            if (gameData.user.level > oldLevel) {
+                this.showMessage(`LEVEL UP! Now level ${gameData.user.level}!`, '#FFD700');
+            }
         }
+
+        // Report win to backend API to sync stats (will override local if successful)
+        this.reportWinToBackend();
 
         // Show victory overlay
         this.showResultOverlay(true, coinsWon);
+    }
+
+    async reportWinToBackend() {
+        try {
+            const token = localStorage.getItem('authToken');
+
+            if (token && token !== 'local-user-token') {
+                const response = await fetch('http://localhost:8000/api/report-win', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Win reported to backend:', data);
+
+                    // Update local gameData with server response
+                    if (gameData.user) {
+                        gameData.user.coins = data.new_coins;
+                        gameData.user.wins = data.new_wins;
+                    }
+
+                    // Show level up message if applicable
+                    if (data.leveled_up) {
+                        this.showMessage(data.message, '#FFD700');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to report win to backend:', error);
+        }
     }
 
     battleDefeat() {
@@ -1234,9 +1365,7 @@ class BattleScene extends Phaser.Scene {
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
         continueBtn.on('pointerdown', () => {
-            // TODO: Return to MapScene
-            // For now, return to MenuScene
-            this.scene.start('MenuScene');
+            //this.scene.start('MapScene');
         });
     }
 

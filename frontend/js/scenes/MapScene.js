@@ -14,10 +14,51 @@ class MapScene extends Phaser.Scene {
     this.shopTitle = null;
     this.closeShopBtn = null;
     this.closeShopBtnBottom = null;
+    this.levelSprites = [];
 
-    // Starting coins (replace with your real coin system later)
-    if (typeof this.coins !== "number") this.coins = 50;
+    // Fetch player data then build the map
+    this.fetchPlayerData().then(() => {
+      this.buildMap();
+    });
+  }
 
+  async fetchPlayerData() {
+    try {
+      const token = localStorage.getItem('authToken');
+
+      if (token && token !== 'local-user-token') {
+        // Fetch from backend API
+        const response = await fetch('http://localhost:8000/api/player', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Player data from API:', data);
+
+          // Update global gameData with backend values
+          if (gameData.user) {
+            gameData.user.level = data.level;
+            gameData.user.max_hp = data.max_hp;
+            gameData.user.coins = data.coins;
+            gameData.user.wins = data.wins;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch player data:', error);
+    }
+
+    // Set coins from gameData (either from API or local)
+    this.coins = gameData.user ? gameData.user.coins : 50;
+    this.playerLevel = gameData.user ? gameData.user.level : 1;
+  }
+
+  buildMap() {
     // -----------------------------
     // BACKGROUND
     // -----------------------------
@@ -36,29 +77,45 @@ class MapScene extends Phaser.Scene {
       color: "#ffffff"
     }).setDepth(100);
 
+    // Player level display (top-left, below coins)
+    this.levelText = this.add.text(20, 50, `Level: ${this.playerLevel}`, {
+      fontFamily: "Fredoka One",
+      fontSize: "20px",
+      color: "#FFD700"
+    }).setDepth(100);
+
     // -----------------------------
     // LEVEL + SHOP SPRITES
+    // Levels unlock based on player level
     // -----------------------------
     const levels = [
-      { key: "Level1Scene", spriteKey: "level1Sprite", unlocked: true,  x: 770,  y: 425 },
-      { key: "Level2Scene", spriteKey: "level2Sprite", unlocked: false, x: 150,  y: 270 },
-      { key: "Level3Scene", spriteKey: "level3Sprite", unlocked: false, x: 620,  y: 130 },
-      { key: "Level4Scene", spriteKey: "level4Sprite", unlocked: false, x: 1140, y: 250 },
-      { key: "Level5Scene", spriteKey: "level5Sprite", unlocked: false, x: 1100, y: 550 },
+      { key: "Level1Scene", spriteKey: "level1Sprite", levelRequired: 1, difficulty: "easy",   x: 770,  y: 425 },
+      { key: "Level2Scene", spriteKey: "level2Sprite", levelRequired: 2, difficulty: "easy",   x: 150,  y: 270 },
+      { key: "Level3Scene", spriteKey: "level3Sprite", levelRequired: 3, difficulty: "medium", x: 620,  y: 130 },
+      { key: "Level4Scene", spriteKey: "level4Sprite", levelRequired: 4, difficulty: "medium", x: 1140, y: 250 },
+      { key: "Level5Scene", spriteKey: "level5Sprite", levelRequired: 5, difficulty: "hard",   x: 1100, y: 550 },
 
-      // Shop node on the map
-      { key: "ShopPanel", spriteKey: "shopSprite", unlocked: true, x: 770, y: 630 }
+      // Shop node on the map (always unlocked)
+      { key: "ShopPanel", spriteKey: "shopSprite", levelRequired: 0, x: 770, y: 630 }
     ];
+
+    // Store level sprites for later reference
+    this.levelSprites = [];
 
     levels.forEach((level) => {
       const sprite = this.add.sprite(level.x, level.y, level.spriteKey);
 
-      if (!level.unlocked) {
+      // Check if level is unlocked based on player level
+      const isUnlocked = level.levelRequired <= this.playerLevel || level.spriteKey === "shopSprite";
+
+      if (!isUnlocked) {
         sprite.setTint(0x555555);
         sprite.setAlpha(0.7);
-        sprite.disableInteractive();
         return;
       }
+
+      // Store reference to interactive sprites
+      this.levelSprites.push(sprite);
 
       sprite.setInteractive({ useHandCursor: true });
 
@@ -69,17 +126,16 @@ class MapScene extends Phaser.Scene {
         // Don't allow clicking map nodes while shop modal is open
         if (this.shopOpen) return;
 
-        if (level.spriteKey === "level1Sprite") {
-          this.scene.start("BattleScene");
-          return;
-        }
-
         if (level.spriteKey === "shopSprite") {
           this.openShopPanel();
           return;
         }
 
-        console.log("This level isn't implemented yet.");
+        // Start battle with appropriate difficulty
+        this.scene.start("BattleScene", {
+          difficulty: level.difficulty || "easy",
+          area: level.key.replace("Scene", "")
+        });
       });
 
       sprite.on("pointerover", () => sprite.setScale(1.1));
@@ -249,8 +305,12 @@ class MapScene extends Phaser.Scene {
         if (this.coinText) this.coinText.setText(`Coins: ${this.coins}`);
         coinLabel.setText(`Coins: ${this.coins}`);
 
-        // Apply upgrade (hook your real health system later)
-        console.log(`Bought ${pack.id}: +${pack.hp} health`);
+        // Apply permanent HP upgrade to gameData
+        if (gameData.user) {
+          gameData.user.coins = this.coins;
+          gameData.user.max_hp = (gameData.user.max_hp || 100) + pack.hp;
+          console.log(`Bought ${pack.id}: +${pack.hp} HP. New max HP: ${gameData.user.max_hp}`);
+        }
 
         // ADDED feedback then revert (repeatable)
         buyBtn.setText("ADDED");
@@ -293,19 +353,38 @@ class MapScene extends Phaser.Scene {
     if (!this.shopOpen) return;
     this.shopOpen = false;
 
-    // Destroy overlay/panel separately
-    if (this.shopOverlay) { this.shopOverlay.destroy(); this.shopOverlay = null; }
-    if (this.shopPanel) { this.shopPanel.destroy(); this.shopPanel = null; }
+    // Destroy overlay and panel
+    if (this.shopOverlay) {
+      this.shopOverlay.destroy();
+      this.shopOverlay = null;
+    }
+    if (this.shopPanel) {
+      this.shopPanel.destroy();
+      this.shopPanel = null;
+    }
 
     // Destroy everything tracked in shopUi
     if (this.shopUi && this.shopUi.length) {
-      this.shopUi.forEach(obj => obj && obj.destroy && obj.destroy());
+      this.shopUi.forEach(obj => {
+        if (obj && obj.destroy) {
+          obj.destroy();
+        }
+      });
       this.shopUi = [];
     }
 
     this.shopTitle = null;
     this.closeShopBtn = null;
     this.closeShopBtnBottom = null;
+
+    // Re-enable level sprite interactivity (safety measure)
+    if (this.levelSprites && this.levelSprites.length) {
+      this.levelSprites.forEach(sprite => {
+        if (sprite && sprite.setInteractive) {
+          sprite.setInteractive({ useHandCursor: true });
+        }
+      });
+    }
   }
 
   // -----------------------------
