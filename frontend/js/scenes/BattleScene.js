@@ -85,110 +85,54 @@ class BattleScene extends Phaser.Scene {
     }
 
     createShopIcon() {
-        // Shop icon background (top-right, next to enemy health bar)
-        const iconX = this.cameras.main.width - 320;
-        const iconY = 25;
+    const iconX = this.cameras.main.width - 340;
+    const iconY = 25;
 
-        this.shopIconBg = this.add.graphics();
-        this.shopIconBg.fillStyle(0xFFD700, 1);
-        this.shopIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-        this.shopIconBg.lineStyle(3, 0xDAA520, 1);
-        this.shopIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
+    // Shop icon image
+    this.shopIcon = this.add.image(iconX + 22, iconY + 22, "shop_logo");
+    this.shopIcon.setScale(0.21);
 
-        // Shopping bag icon (simple representation)
-        this.shopIcon = this.add.graphics();
-        this.shopIcon.fillStyle(0x8B4513, 1);
-        // Bag body
-        this.shopIcon.fillRoundedRect(iconX + 10, iconY + 18, 25, 20, 4);
-        // Bag handle
-        this.shopIcon.lineStyle(3, 0x8B4513, 1);
-        this.shopIcon.beginPath();
-        this.shopIcon.arc(iconX + 22, iconY + 18, 8, Math.PI, 0, false);
-        this.shopIcon.strokePath();
+    // Click area
+    this.shopHitArea = this.add.rectangle(iconX + 22, iconY + 22, 50, 50, 0x000000, 0)
+        .setInteractive({ useHandCursor: true });
 
-        // "SHOP" text below icon
-        this.shopLabel = this.add.text(iconX + 22, iconY + 50, 'SHOP', {
-            fontFamily: 'Fredoka One',
-            fontSize: '12px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
+    // Hover effects
+    this.shopHitArea.on('pointerover', () => {
+        this.shopIcon.setScale(0.22);
+    });
 
-        // Make clickable area
-        this.shopHitArea = this.add.rectangle(iconX + 22, iconY + 22, 50, 50, 0x000000, 0)
-            .setInteractive({ useHandCursor: true });
+    this.shopHitArea.on('pointerout', () => {
+        this.shopIcon.setScale(0.21);
+    });
 
-        this.shopHitArea.on('pointerover', () => {
-            this.shopIconBg.clear();
-            this.shopIconBg.fillStyle(0xFFA500, 1);
-            this.shopIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-            this.shopIconBg.lineStyle(3, 0xFF8C00, 1);
-            this.shopIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
-        });
+    // Click
+    this.shopHitArea.on('pointerdown', () => {
+        if (!this.shopOpen) {
+            this.openShop();
+        }
+    });
 
-        this.shopHitArea.on('pointerout', () => {
-            this.shopIconBg.clear();
-            this.shopIconBg.fillStyle(0xFFD700, 1);
-            this.shopIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-            this.shopIconBg.lineStyle(3, 0xDAA520, 1);
-            this.shopIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
-        });
-
-        this.shopHitArea.on('pointerdown', () => {
-            if (!this.shopOpen) {
-                this.openShop();
-            }
-        });
-
-        this.shopOpen = false;
+    this.shopOpen = false;
     }
 
     createQuestionIcon() {
+    
         // Question icon (next to shop icon)
-        const iconX = this.cameras.main.width - 385;
+        const iconX = this.cameras.main.width - 405;
         const iconY = 25;
-
-        this.questionIconBg = this.add.graphics();
-        this.questionIconBg.fillStyle(0x9C27B0, 1); // Purple
-        this.questionIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-        this.questionIconBg.lineStyle(3, 0x7B1FA2, 1);
-        this.questionIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
-
-        // Question mark icon
-        this.questionIcon = this.add.text(iconX + 22, iconY + 22, '?', {
-            fontFamily: 'Fredoka One',
-            fontSize: '28px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-
-        // "QUESTION" text below icon
-        this.questionLabel = this.add.text(iconX + 22, iconY + 50, 'QUESTION', {
-            fontFamily: 'Fredoka One',
-            fontSize: '10px',
-            color: '#9C27B0',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
+        this.questionIcon = this.add.image(iconX + 22, iconY + 22, "question_logo");
+        this.questionIcon.setScale(0.21);
 
         // Make clickable area
         this.questionHitArea = this.add.rectangle(iconX + 22, iconY + 22, 50, 50, 0x000000, 0)
             .setInteractive({ useHandCursor: true });
 
         this.questionHitArea.on('pointerover', () => {
-            this.questionIconBg.clear();
-            this.questionIconBg.fillStyle(0xAB47BC, 1);
-            this.questionIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-            this.questionIconBg.lineStyle(3, 0x8E24AA, 1);
-            this.questionIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
+            this.questionIcon.setScale(0.22);
         });
 
         this.questionHitArea.on('pointerout', () => {
-            this.questionIconBg.clear();
-            this.questionIconBg.fillStyle(0x9C27B0, 1);
-            this.questionIconBg.fillRoundedRect(iconX, iconY, 45, 45, 8);
-            this.questionIconBg.lineStyle(3, 0x7B1FA2, 1);
-            this.questionIconBg.strokeRoundedRect(iconX, iconY, 45, 45, 8);
+            this.questionIcon.setScale(0.21);
         });
 
         this.questionHitArea.on('pointerdown', () => {
@@ -202,7 +146,6 @@ class BattleScene extends Phaser.Scene {
     }
 
     setQuestionIconVisible(visible) {
-        if (this.questionIconBg) this.questionIconBg.setVisible(visible);
         if (this.questionIcon) this.questionIcon.setVisible(visible);
         if (this.questionLabel) this.questionLabel.setVisible(visible);
         if (this.questionHitArea) {
@@ -213,7 +156,9 @@ class BattleScene extends Phaser.Scene {
                 this.questionHitArea.removeInteractive();
             }
         }
-    }
+}
+
+    
 
     createBackground() {
 
@@ -222,23 +167,29 @@ class BattleScene extends Phaser.Scene {
         .setOrigin(0, 0);
 
     // area name text stays
-    this.add.text(this.cameras.main.centerX, 30, this.areaName, {
-        fontFamily: 'Fredoka One',
-        fontSize: '28px',
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 4
-    }).setOrigin(0.5);
+    this.add.image(this.cameras.main.centerX, 75, "kingscourts_label")
+    .setOrigin(0.5)
+    .setScale(1.0);
+
+    // this.add.text(this.cameras.main.centerX, 30, this.areaName, {
+    //     fontFamily: 'Fredoka One',
+    //     fontSize: '28px',
+    //     color: '#ffffff',
+    //     stroke: '#000000',
+    //     strokeThickness: 4
+    // }).setOrigin(0.5);
     }
 
     createCharacters() {
         const centerY = this.cameras.main.centerY + 50;
+        const labelY = centerY - 300;    
+
         this.playerSprite = this.add.image(150, centerY, "player");
         this.playerSprite.setScale(0.4);
 
 
         // Player label
-        this.add.text(190, centerY + 80, gameData.user?.username || 'Player', {
+        this.add.text(190, labelY, gameData.user?.username || 'Player', {
             fontFamily: 'Nunito',
             fontSize: '16px',
             color: '#ffffff',
@@ -249,9 +200,8 @@ class BattleScene extends Phaser.Scene {
         // Player idle animation (slight wobble)
         this.tweens.add({
             targets: this.playerSprite,
-            scaleX: 1.05,
-            scaleY: 0.95,
-            duration: 800,
+            y: this.playerSprite.y - 6,
+            duration: 1200,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -276,7 +226,7 @@ class BattleScene extends Phaser.Scene {
        this.enemySprite.setScale(1.0); // tweak this
 
         // Enemy label
-        this.add.text(this.cameras.main.width - 180, centerY + 90, this.currentEnemy.name, {
+        this.add.text(this.cameras.main.width - 180, labelY, this.currentEnemy.name, {
             fontFamily: 'Nunito',
             fontSize: '16px',
             color: '#ffffff',
