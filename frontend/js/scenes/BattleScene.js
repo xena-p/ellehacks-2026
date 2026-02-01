@@ -233,13 +233,9 @@ class BattleScene extends Phaser.Scene {
 
     createCharacters() {
         const centerY = this.cameras.main.centerY + 50;
+        this.playerSprite = this.add.image(150, centerY, "player");
+        this.playerSprite.setScale(0.4);
 
-        // Player (left side) - placeholder rectangle
-        this.playerSprite = this.add.graphics();
-        this.playerSprite.fillStyle(0x4169E1, 1); // Royal blue
-        this.playerSprite.fillRoundedRect(150, centerY - 60, 80, 120, 8);
-        this.playerSprite.lineStyle(3, 0x1E90FF, 1);
-        this.playerSprite.strokeRoundedRect(150, centerY - 60, 80, 120, 8);
 
         // Player label
         this.add.text(190, centerY + 80, gameData.user?.username || 'Player', {
@@ -251,16 +247,13 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Pet (near player) - small bouncing circle
-        this.petSprite = this.add.graphics();
-        this.petSprite.fillStyle(0xFFD700, 1); // Gold
-        this.petSprite.fillCircle(280, centerY + 20, 20);
-        this.petSprite.lineStyle(2, 0xFFA500, 1);
-        this.petSprite.strokeCircle(280, centerY + 20, 20);
+        this.petSprite = this.add.image(280, centerY + 20, "pet");
+        this.petSprite.setScale(0.3);
 
         // Pet bounce animation
         this.tweens.add({
             targets: this.petSprite,
-            y: -10,
+            y: this.petSprite.y - 10,
             duration: 500,
             yoyo: true,
             repeat: -1,
@@ -268,11 +261,8 @@ class BattleScene extends Phaser.Scene {
         });
 
         // Enemy (right side) - placeholder rectangle
-        this.enemySprite = this.add.graphics();
-        this.enemySprite.fillStyle(this.currentEnemy.color, 1);
-        this.enemySprite.fillRoundedRect(this.cameras.main.width - 230, centerY - 70, 100, 140, 8);
-        this.enemySprite.lineStyle(3, 0x000000, 0.5);
-        this.enemySprite.strokeRoundedRect(this.cameras.main.width - 230, centerY - 70, 100, 140, 8);
+       this.enemySprite = this.add.image(this.cameras.main.width - 250, centerY, "kingscourt_enemy");
+       this.enemySprite.setScale(1.0); // tweak this
 
         // Enemy label
         this.add.text(this.cameras.main.width - 180, centerY + 90, this.currentEnemy.name, {
