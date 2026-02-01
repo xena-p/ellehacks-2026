@@ -1025,8 +1025,7 @@ class BattleScene extends Phaser.Scene {
                 ease: 'Power2',
                 yoyo: true,
                 onYoyo: () => {
-                    // Step 3: Impact! Flash and shake enemy
-                    this.flashCharacter(this.enemySprite, 0xFF0000, enemyX, centerY - 70, 100, 140);
+                    // Step 3: Impact! Shake enemy
                     this.shakeSprite(this.enemySprite, 10);
 
                     // Show damage number floating up
@@ -1122,8 +1121,7 @@ class BattleScene extends Phaser.Scene {
                 ease: 'Power2',
                 yoyo: true,
                 onYoyo: () => {
-                    // Step 3: Impact! Flash and shake player
-                    this.flashCharacter(this.playerSprite, 0xFF0000, playerX, centerY - 60, 80, 120);
+                    // Step 3: Impact! Shake player
                     this.shakeSprite(this.playerSprite, 10);
 
                     // Show damage number floating up

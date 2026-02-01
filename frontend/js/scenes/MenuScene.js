@@ -57,7 +57,6 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
-        this.scene.start('MapScene');
         // Create the sky background
         this.createBackground();
 
@@ -481,7 +480,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     createFormHTML() {
-        const title = this.isLoginMode ? 'Welcome back. Log in to play!' : 'Create your account!';
+        const title = this.isLoginMode ? 'Welcome back! Log in to play!' : 'Create your account!';
         const buttonText = this.isLoginMode ? 'Log In' : 'Sign Up';
         const switchText = this.isLoginMode
             ? "Don't have an account? <a href='#' id='switch-mode'>Sign up</a>"
@@ -544,13 +543,21 @@ class MenuScene extends Phaser.Scene {
     }
 
     handleSubmit() {
-        const username = this.formElement.getChildByID('username').value;
+        const username = this.formElement.getChildByID('username').value.trim();
         const password = this.formElement.getChildByID('password').value;
         const errorDiv = this.formElement.getChildByID('error-message');
+
+        // Reset error styling
+        errorDiv.style.color = '#DC143C';
 
         // Basic validation
         if (!username || !password) {
             errorDiv.textContent = 'Please fill in all fields';
+            return;
+        }
+
+        if (username.length < 3) {
+            errorDiv.textContent = 'Username must be at least 3 characters';
             return;
         }
 
@@ -562,92 +569,34 @@ class MenuScene extends Phaser.Scene {
         // Clear any previous errors
         errorDiv.textContent = '';
 
-        if (this.isLoginMode) {
-            this.login(username, password);
-        } else {
-            this.register(username, password);
-        }
+        // Both login and signup work the same way locally - no backend required
+        this.startGame(username);
     }
 
-    async login(username, password) {
-        const errorDiv = this.formElement.getChildByID('error-message');
-        const submitBtn = this.formElement.getChildByName('submit-btn');
-
-        try {
-            // Call Django Ninja API login endpoint
-            const response = await fetch(`http://localhost:8000/api/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await response.json();
-
-            console.log('Login response:', data);
-
-            if (data.error) {
-                errorDiv.textContent = data.error;
-                return;
-            }
-
-            // Store the auth token for future API calls
-            localStorage.setItem('authToken', data.token);
-
-            // Store user data
-            gameData.user = {
-                username: username,
-                level: 1,
-                wins: 0,
-                coins: 50,
-                max_hp: 100
-            };
-            gameData.isLoggedIn = true;
-
-            // Show success and launch battle
-            errorDiv.style.color = '#2E7D32';
-            errorDiv.textContent = 'Login successful! Starting battle...';
-
-            // Start BattleScene after short delay (for testing)
-            setTimeout(() => {
-                this.scene.start('MapScene');
-                //this.scene.start('BattleScene', { difficulty: 'easy', area: 'Savings Village' });
-            }, 1000);
-
-        } catch (error) {
-            errorDiv.textContent = 'Login failed. Please try again.';
-            console.error('Login error:', error);
-        }
-    }
-
-    async register(username, password) {
+    startGame(username) {
         const errorDiv = this.formElement.getChildByID('error-message');
 
-        try {
-            // Call Django Ninja API signup endpoint
-            const response = await fetch(`http://localhost:8000/api/auth/signup?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await response.json();
+        // Store a simple token for API calls (can be any string for local mode)
+        localStorage.setItem('authToken', 'local-user-token');
 
-            console.log('Register response:', data);
+        // Store user data
+        gameData.user = {
+            username: username,
+            level: 1,
+            wins: 0,
+            coins: 50,
+            max_hp: 100
+        };
+        gameData.isLoggedIn = true;
 
-            if (data.error) {
-                errorDiv.textContent = data.error;
-                return;
-            }
+        // Show success message
+        const message = this.isLoginMode ? 'Login successful!' : 'Account created!';
+        errorDiv.style.color = '#2E7D32';
+        errorDiv.textContent = `${message} Starting game...`;
 
-            // Show success and switch to login
-            errorDiv.style.color = '#2E7D32';
-            errorDiv.textContent = 'Account created! Please log in.';
-
-            // Switch to login mode after short delay
-            setTimeout(() => {
-                this.isLoginMode = true;
-                this.toggleMode();
-            }, 1500);
-
-        } catch (error) {
-            errorDiv.textContent = 'Registration failed. Please try again.';
-            console.error('Register error:', error);
-        }
+        // Start MapScene after short delay
+        setTimeout(() => {
+            this.scene.start('MapScene');
+        }, 1000);
     }
 }
