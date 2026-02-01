@@ -815,29 +815,40 @@ class BattleScene extends Phaser.Scene {
     }
 
     async showQuestion() {
-        // For testing, use mock questions
-        // Later, integrate with API: const response = await api.getQuestion(this.getDifficultyNumber());
+        // Fetch question from Gemini API via backend
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('http://localhost:8000/api/generate-quiz', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}`
+                }
+            });
 
-        const mockQuestions = {
-            easy: [
-                { id: 1, question: 'What is a good place to keep your money safe?', options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'], correct: 1 },
-                { id: 2, question: 'If you save $1 each day for a week, how much will you have?', options: ['$5', '$6', '$7', '$8'], correct: 2 },
-                { id: 3, question: 'What does "saving" money mean?', options: ['Spending it all', 'Giving it away', 'Keeping it for later', 'Throwing it away'], correct: 2 }
-            ],
-            medium: [
-                { id: 4, question: 'Which is a NEED, not a want?', options: ['Video games', 'Food', 'Toys', 'Candy'], correct: 1 },
-                { id: 5, question: 'What is a budget?', options: ['A type of toy', 'A plan for spending money', 'A type of bank', 'A credit card'], correct: 1 },
-                { id: 6, question: 'You have $10 and want a $15 toy. What should you do?', options: ['Steal it', 'Save more money', 'Break the toy', 'Cry'], correct: 1 }
-            ],
-            hard: [
-                { id: 7, question: 'What is "interest" on a savings account?', options: ['A fee you pay', 'Extra money the bank gives you', 'A type of bank', 'A credit score'], correct: 1 },
-                { id: 8, question: 'Why should you compare prices before buying?', options: ['It\'s fun', 'To save money', 'To waste time', 'To annoy stores'], correct: 1 },
-                { id: 9, question: 'What is a scam?', options: ['A good deal', 'A trick to steal your money', 'A type of bank', 'A savings account'], correct: 1 }
-            ]
-        };
+            const data = await response.json();
+            console.log('Quiz question from API:', data);
 
-        const questions = mockQuestions[this.difficulty];
-        this.currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+            // Find the index of the correct answer in options
+            const correctIndex = data.options.findIndex(opt => opt === data.answer);
+
+            this.currentQuestion = {
+                question: data.question,
+                options: data.options,
+                correct: correctIndex >= 0 ? correctIndex : 0,
+                explanation: data.explanation
+            };
+        } catch (error) {
+            console.error('Failed to fetch question from API, using fallback:', error);
+            // Fallback question if API fails
+            this.currentQuestion = {
+                question: 'What is a good place to keep your money safe?',
+                options: ['Under your pillow', 'In a bank', 'In your pocket', 'On the ground'],
+                correct: 1,
+                explanation: 'Banks are safe places to store money and can even help it grow with interest!'
+            };
+        }
+
         this.selectedAnswer = null; // Track selected answer
 
         // Create question modal
