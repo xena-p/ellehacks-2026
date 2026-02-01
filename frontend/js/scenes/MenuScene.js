@@ -28,8 +28,8 @@ class MenuScene extends Phaser.Scene {
         this.load.image("healthMedium", "assets/images/medHp.png");
         this.load.image("healthLarge", "assets/images/largeHp.png");
         //Battle Backgrounds
-        this.load.image('kingscourts_bg', 'assets/images/backgrounds/KingsCourt_bg.png');
-        this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.png');
+        this.load.image('kingscourts_bg', 'assets/images/backgrounds/kingscourt_bg.png');
+        this.load.image('frostpeak_bg', 'assets/images/backgrounds/FrostPeak_bg.jpg');
         this.load.image('cloudspire_bg', 'assets/images/backgrounds/Cloudspire_bg.png');
         this.load.image('ashbound_bg', 'assets/images/backgrounds/Ashbound_bg.png');
         this.load.image('havenfall_bg', 'assets/images/backgrounds/Havenfall_bg.png');
@@ -56,8 +56,8 @@ class MenuScene extends Phaser.Scene {
         //Enemies 
         this.load.image('kingscourt_enemy', 'assets/images/enemies/enemy_kingscourt.png');
         this.load.image('frostpeak_enemy', 'assets/images/enemies/enemy_FrostPeak.png');
-        // this.load.image('cloudspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
-        // this.load.image('Ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
+        this.load.image('cloudspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
+        this.load.image('Ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
         this.load.image('Havenfall_enemy', 'assets/images/enemies/enemy_Havenfall.png');
         this.load.image('clouspire_enemy', 'assets/images/enemies/enemy_Cloudspire.png');
         this.load.image('ashbound_enemy', 'assets/images/enemies/enemy_Ashbound.png');
