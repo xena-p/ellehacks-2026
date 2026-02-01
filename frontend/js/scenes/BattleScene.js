@@ -571,12 +571,21 @@ class BattleScene extends Phaser.Scene {
             item.buyBtn.destroy();
         });
 
-        // Show question modal again if it exists
-        if (this.questionOverlay) {
+        // Restore question modal if it was visible before opening shop
+        if (this.questionWasVisible && this.questionOverlay) {
             this.questionOverlay.setVisible(true);
             this.questionPanel.setVisible(true);
             this.questionText.setVisible(true);
-            this.answerButtons.forEach(btn => btn.setVisible(true));
+            if (this.submitBtn) this.submitBtn.setVisible(true);
+            if (this.questionCloseBtn) this.questionCloseBtn.setVisible(true);
+            if (this.answerButtons) {
+                this.answerButtons.forEach(btn => btn.setVisible(true));
+            }
+            this.questionVisible = true;
+            this.setQuestionIconVisible(false);
+        } else {
+            // Question wasn't visible, show the question icon
+            this.setQuestionIconVisible(true);
         }
     }
 
@@ -948,7 +957,7 @@ class BattleScene extends Phaser.Scene {
     selectAnswer(index) {
         // Deselect previous answer
         if (this.selectedAnswer !== null) {
-            this.answerButtons[this.selectedAnswer].setStyle({ backgroundColor: '#FFFDF8' });
+            this.answerButtons[this.selectedAnswer].setStyle({ backgroundColor: '#FFFDF8', color: '#3D3D3D' });
         }
 
         // Select new answer
@@ -1032,15 +1041,27 @@ class BattleScene extends Phaser.Scene {
     }
 
     clearQuestionModal() {
-        this.questionOverlay.destroy();
-        this.questionPanel.destroy();
-        this.questionText.destroy();
-        this.answerButtons.forEach(btn => btn.destroy());
+        if (this.questionOverlay) this.questionOverlay.destroy();
+        if (this.questionPanel) this.questionPanel.destroy();
+        if (this.questionText) this.questionText.destroy();
+        if (this.answerButtons) {
+            this.answerButtons.forEach(btn => btn.destroy());
+        }
         if (this.submitBtn) {
             this.submitBtn.destroy();
         }
+        if (this.questionCloseBtn) {
+            this.questionCloseBtn.destroy();
+        }
+        this.questionOverlay = null;
+        this.questionPanel = null;
+        this.questionText = null;
+        this.answerButtons = null;
+        this.submitBtn = null;
+        this.questionCloseBtn = null;
         this.selectedAnswer = null;
         this.submitBtnEnabled = false;
+        this.questionVisible = false;
     }
 
     playerAttack() {
