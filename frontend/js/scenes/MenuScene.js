@@ -186,7 +186,7 @@ class MenuScene extends Phaser.Scene {
         this.titleContainer.setDepth(50);
 
         // Main title text
-        this.gameTitle = this.add.text(0, 0, '{PROJECT NAME!!!!}', {
+        this.gameTitle = this.add.text(0, 0, 'Fortune Island}', {
             fontFamily: 'Fredoka One',
             fontSize: '64px',
             color: '#FFD700',
@@ -195,7 +195,7 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Subtitle
-        this.gameSubtitle = this.add.text(0, 45, '{NEW PHRASE GOES HERE!!!!}]', {
+        this.gameSubtitle = this.add.text(0, 45, 'A Financial Adventure for Kids', {
             fontFamily: 'Nunito',
             fontSize: '18px',
             color: '#FFFFFF',
