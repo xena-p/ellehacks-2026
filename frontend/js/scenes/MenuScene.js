@@ -61,6 +61,10 @@ class MenuScene extends Phaser.Scene {
         this.load.image('havenfall_enemy', 'assets/images/enemies/enemy_Havenfall.png');
 
         this.load.image("shopSprite", "assets/images/shop.png");
+
+        // Logo/Favicon
+        this.load.image('logo', 'assets/images/favicon.png');
+
     // Optional: background, UI, sounds
     // this.load.image("mapBg", "assets/map-bg.png");
     // this.load.audio("correct", "assets/correct.mp3");
@@ -69,6 +73,12 @@ class MenuScene extends Phaser.Scene {
     create() {
         // Create the sky background
         this.createBackground();
+
+        // Add logo at top left
+        this.logo = this.add.image(300, 80, 'logo')
+            .setOrigin(0.5)
+            .setScale(0.15)
+            .setDepth(100);
 
         // Create the animated game title
         this.createGameTitle();
