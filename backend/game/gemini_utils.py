@@ -14,10 +14,16 @@ class QuestionSchema(Schema):
     explanation: str
 
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
+def get_gemini_client():
+    """Returns the client only when called, preventing startup hangs."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is not set in your environment variables.")
+    
+    return genai.Client(api_key=api_key)
 
 def generate_question(level: int) -> dict:
+    client = get_gemini_client()
     difficulty_map = {
         1: "easy, beginner finance question, multiple choice, simple math",
         2: "medium difficulty, some calculations, basic financial concepts",
