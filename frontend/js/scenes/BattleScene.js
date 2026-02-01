@@ -280,6 +280,17 @@ class BattleScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
+        // Player idle animation (slight wobble)
+        this.tweens.add({
+            targets: this.playerSprite,
+            scaleX: 1.05,
+            scaleY: 0.95,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         // Pet (near player) - small bouncing circle
         this.petSprite = this.add.graphics();
         this.petSprite.fillStyle(0xFFD700, 1); // Gold

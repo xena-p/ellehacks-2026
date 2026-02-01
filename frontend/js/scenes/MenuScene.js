@@ -2,6 +2,7 @@ class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
         this.isLoginMode = true;
+        this.sparkles = [];
     }
 
     preload() {
@@ -16,7 +17,7 @@ class MenuScene extends Phaser.Scene {
         this.load.image("level3Sprite", "assets/images/level3.png");
         this.load.image("level4Sprite", "assets/images/level4.png");
         this.load.image("level5Sprite", "assets/images/level5.png");
-    
+
         this.load.image("shopSprite", "assets/images/shop.png");
     // Optional: background, UI, sounds
     // this.load.image("mapBg", "assets/map-bg.png");
@@ -27,8 +28,351 @@ class MenuScene extends Phaser.Scene {
         // Create the sky background
         this.createBackground();
 
+        // Create the animated game title
+        this.createGameTitle();
+
+        // Create the piggy bank mascot
+        this.createMascot();
+
         // Create the login/register form
         this.createAuthForm();
+
+        // Start sparkle effects
+        this.startSparkleEffects();
+
+        // Play entrance animations
+        this.playEntranceAnimations();
+    }
+
+    // ============ SPARKLE SYSTEM ============
+    createSparkle(x, y, color = 0xFFD700) {
+        const sparkle = this.add.graphics();
+        const size = Phaser.Math.Between(3, 6);
+
+        // Draw a small diamond/star shape
+        sparkle.fillStyle(color, 1);
+        sparkle.beginPath();
+        sparkle.moveTo(x, y - size);
+        sparkle.lineTo(x + size * 0.5, y);
+        sparkle.lineTo(x, y + size);
+        sparkle.lineTo(x - size * 0.5, y);
+        sparkle.closePath();
+        sparkle.fillPath();
+
+        // Add a white center for extra sparkle
+        sparkle.fillStyle(0xFFFFFF, 0.8);
+        sparkle.fillCircle(x, y, size * 0.3);
+
+        sparkle.setAlpha(0);
+        sparkle.setScale(0);
+        sparkle.setDepth(100);
+
+        // Animate the sparkle
+        this.tweens.add({
+            targets: sparkle,
+            alpha: 1,
+            scale: 1,
+            duration: 200,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: sparkle,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 300,
+                    delay: 100,
+                    ease: 'Power2',
+                    onComplete: () => sparkle.destroy()
+                });
+            }
+        });
+
+        return sparkle;
+    }
+
+    startSparkleEffects() {
+        // Sparkles around the title
+        this.time.addEvent({
+            delay: 300,
+            callback: () => {
+                if (this.gameTitle) {
+                    const offsetX = Phaser.Math.Between(-150, 150);
+                    const offsetY = Phaser.Math.Between(-30, 30);
+                    this.createSparkle(
+                        this.cameras.main.centerX + offsetX,
+                        80 + offsetY,
+                        Phaser.Math.RND.pick([0xFFD700, 0xFFFFFF, 0xFFA500])
+                    );
+                }
+            },
+            loop: true
+        });
+
+        // Sparkles from piggy bank coin slot
+        this.time.addEvent({
+            delay: 800,
+            callback: () => {
+                if (this.mascotContainer) {
+                    for (let i = 0; i < 3; i++) {
+                        this.time.delayedCall(i * 100, () => {
+                            const offsetX = Phaser.Math.Between(-10, 10);
+                            const offsetY = Phaser.Math.Between(-20, -5);
+                            this.createSparkle(
+                                this.mascotContainer.x + offsetX,
+                                this.mascotContainer.y - 40 + offsetY,
+                                0xFFD700
+                            );
+                        });
+                    }
+                }
+            },
+            loop: true
+        });
+    }
+
+    // ============ GAME TITLE ============
+    createGameTitle() {
+        const centerX = this.cameras.main.centerX;
+
+        // Create title container for animations
+        this.titleContainer = this.add.container(centerX, -100);
+        this.titleContainer.setDepth(50);
+
+        // Main title text
+        this.gameTitle = this.add.text(0, 0, '{PROJECT NAME!!!!}', {
+            fontFamily: 'Fredoka One',
+            fontSize: '64px',
+            color: '#FFD700',
+            stroke: '#8B4513',
+            strokeThickness: 8
+        }).setOrigin(0.5);
+
+        // Subtitle
+        this.gameSubtitle = this.add.text(0, 45, '{NEW PHRASE GOES HERE!!!!}]', {
+            fontFamily: 'Nunito',
+            fontSize: '18px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        // Add coin decorations on sides of title
+        const leftCoin = this.createTitleCoin(-180, -5);
+        const rightCoin = this.createTitleCoin(180, -5);
+
+        this.titleContainer.add([this.gameTitle, this.gameSubtitle, leftCoin, rightCoin]);
+
+        // Continuous gentle bounce animation
+        this.tweens.add({
+            targets: this.gameTitle,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    createTitleCoin(x, y) {
+        const coin = this.add.graphics();
+        const size = 25;
+
+        coin.fillStyle(0xFFD700, 1);
+        coin.fillCircle(x, y, size);
+        coin.lineStyle(3, 0xDAA520, 1);
+        coin.strokeCircle(x, y, size);
+        coin.fillStyle(0xFFFF99, 0.5);
+        coin.fillCircle(x - 8, y - 8, 8);
+
+        // Spin animation
+        this.tweens.add({
+            targets: coin,
+            scaleX: 0.3,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        return coin;
+    }
+
+    // ============ PIGGY BANK MASCOT ============
+    createMascot() {
+        const centerX = this.cameras.main.centerX;
+        const centerY = this.cameras.main.centerY;
+
+        // Position mascot to the left of the card
+        const mascotX = centerX - 280;
+        const mascotY = centerY + 20;
+
+        this.mascotContainer = this.add.container(mascotX - 200, mascotY); // Start off-screen
+        this.mascotContainer.setDepth(40);
+
+        const mascot = this.add.graphics();
+
+        // Main body (pink oval)
+        mascot.fillStyle(0xFFB6C1, 1);
+        mascot.fillEllipse(0, 0, 90, 70);
+
+        // Body outline
+        mascot.lineStyle(3, 0xFF69B4, 1);
+        mascot.strokeEllipse(0, 0, 90, 70);
+
+        // Snout
+        mascot.fillStyle(0xFFC0CB, 1);
+        mascot.fillEllipse(50, 5, 30, 25);
+        mascot.lineStyle(2, 0xFF69B4, 1);
+        mascot.strokeEllipse(50, 5, 30, 25);
+
+        // Nostrils
+        mascot.fillStyle(0xFF69B4, 1);
+        mascot.fillCircle(45, 3, 4);
+        mascot.fillCircle(55, 3, 4);
+
+        // Ears
+        mascot.fillStyle(0xFFB6C1, 1);
+        mascot.beginPath();
+        mascot.moveTo(-25, -30);
+        mascot.lineTo(-35, -55);
+        mascot.lineTo(-10, -35);
+        mascot.closePath();
+        mascot.fillPath();
+        mascot.strokePath();
+
+        mascot.beginPath();
+        mascot.moveTo(5, -30);
+        mascot.lineTo(15, -55);
+        mascot.lineTo(25, -35);
+        mascot.closePath();
+        mascot.fillPath();
+        mascot.strokePath();
+
+        // Inner ears
+        mascot.fillStyle(0xFFC0CB, 1);
+        mascot.beginPath();
+        mascot.moveTo(-22, -32);
+        mascot.lineTo(-30, -48);
+        mascot.lineTo(-13, -36);
+        mascot.closePath();
+        mascot.fillPath();
+
+        mascot.beginPath();
+        mascot.moveTo(8, -32);
+        mascot.lineTo(15, -48);
+        mascot.lineTo(22, -36);
+        mascot.closePath();
+        mascot.fillPath();
+
+        // Coin slot on top
+        mascot.fillStyle(0x333333, 1);
+        mascot.fillRoundedRect(-20, -38, 40, 6, 3);
+
+        // Legs
+        mascot.fillStyle(0xFFB6C1, 1);
+        mascot.fillRoundedRect(-35, 25, 18, 25, 5);
+        mascot.fillRoundedRect(-10, 25, 18, 25, 5);
+        mascot.fillRoundedRect(15, 25, 18, 25, 5);
+        mascot.fillRoundedRect(40, 20, 15, 20, 5);
+
+        // Curly tail
+        mascot.lineStyle(4, 0xFF69B4, 1);
+        mascot.beginPath();
+        mascot.arc(-50, 0, 15, 0, Math.PI * 1.5, false);
+        mascot.strokePath();
+
+        this.mascotContainer.add(mascot);
+
+        // Eyes (separate for blinking)
+        this.leftEye = this.add.graphics();
+        this.leftEye.fillStyle(0x000000, 1);
+        this.leftEye.fillCircle(10, -10, 6);
+        this.leftEye.fillStyle(0xFFFFFF, 1);
+        this.leftEye.fillCircle(12, -12, 2);
+
+        this.rightEye = this.add.graphics();
+        this.rightEye.fillStyle(0x000000, 1);
+        this.rightEye.fillCircle(30, -10, 6);
+        this.rightEye.fillStyle(0xFFFFFF, 1);
+        this.rightEye.fillCircle(32, -12, 2);
+
+        this.mascotContainer.add([this.leftEye, this.rightEye]);
+
+        // Blinking animation
+        this.time.addEvent({
+            delay: 3000,
+            callback: () => this.mascotBlink(),
+            loop: true
+        });
+
+        // Idle wobble animation
+        this.tweens.add({
+            targets: this.mascotContainer,
+            angle: 3,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Gentle bounce
+        this.tweens.add({
+            targets: this.mascotContainer,
+            y: mascotY - 5,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            delay: 500
+        });
+    }
+
+    mascotBlink() {
+        // Quick blink animation
+        this.tweens.add({
+            targets: [this.leftEye, this.rightEye],
+            scaleY: 0.1,
+            duration: 100,
+            yoyo: true,
+            ease: 'Power2'
+        });
+    }
+
+    // ============ ENTRANCE ANIMATIONS ============
+    playEntranceAnimations() {
+        // Title drops from top
+        this.tweens.add({
+            targets: this.titleContainer,
+            y: 80,
+            duration: 800,
+            ease: 'Bounce.easeOut',
+            delay: 200
+        });
+
+        // Mascot slides in from left
+        const centerX = this.cameras.main.centerX;
+        const mascotTargetX = centerX - 280;
+
+        this.tweens.add({
+            targets: this.mascotContainer,
+            x: mascotTargetX,
+            duration: 600,
+            ease: 'Back.easeOut',
+            delay: 400
+        });
+
+        // Parchment card and form fade in (handled by existing elements)
+        // The card is already created, but we can add a subtle effect
+        if (this.formElement) {
+            this.formElement.setAlpha(0);
+            this.tweens.add({
+                targets: this.formElement,
+                alpha: 1,
+                duration: 500,
+                delay: 600
+            });
+        }
     }
 
     createBackground() {
