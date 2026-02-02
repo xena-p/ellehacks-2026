@@ -38,6 +38,8 @@ def buy_health(request, amount: int, cost: int):
     Permanently increases the player's max HP by 'amount' if they have enough coins.
     """
     player = request.auth
+    if not player:
+        return {"error": "Unauthorized"}, 401
 
     if player.coins < cost:
         return {"error": "Not enough coins"}, 400
@@ -67,6 +69,8 @@ def get_quiz_question(request):
 @api.post("/report-win", response=WinResponse, auth=TokenAuth())
 def report_win(request):
     player = request.auth
+    if not player:
+        return {"error": "Unauthorized"}, 401
     # It adds a win, adds coins, and checks if level should go up.
     leveled_up = player.add_win(coins_earned=10) 
     
@@ -84,7 +88,7 @@ def report_win(request):
 @api.post("/auth/signup")
 def signup(request, username: str, password: str):
     if Player.objects.filter(username=username).exists():
-        return {"error": "Username taken"}
+        return {"error": "Username taken"}, 400
 
     user = Player.objects.create_user(
         username=username,
@@ -97,6 +101,8 @@ def signup(request, username: str, password: str):
 @api.post("/auth/login")
 def login_user(request, username: str, password: str):
     user = authenticate(username=username, password=password)
+    if not user:
+        return {"error": "Invalid username or password"}, 401
     token, _ = Token.objects.get_or_create(user=user)
     return {"success": True, "token": token.key}
 
@@ -104,6 +110,8 @@ def login_user(request, username: str, password: str):
 @api.get("/player", auth=TokenAuth())
 def get_player(request):
     player = request.auth
+    if not player:
+        return {"error": "Unauthorized"}, 401
     return {
         "level": player.level,
         "max_hp": player.max_hp,

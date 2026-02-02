@@ -59,13 +59,44 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
+        const token = localStorage.getItem("authToken");
+        
         // Fetch player data from API, then initialize the battle
-        this.fetchPlayerData().then(() => {
+        this.fetchPlayerData(token)
+        .then(() => {
             // Select random enemy based on difficulty
             const enemyList = this.ENEMIES[this.difficulty];
             this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
             this.enemyMaxHP = this.currentEnemy.hp;
             this.enemyHP = this.enemyMaxHP;
+
+            // Create scene elements
+            this.createBackground();
+            this.createCharacters();
+            this.createHealthBars();
+            this.createSpellBar();
+            this.createCoinDisplay();
+            this.createShopIcon();
+            this.createQuestionIcon();
+            this.createLogoutButton();
+
+            // Start battle with first question
+            this.battleState = 'battle';
+            this.showQuestion();
+        })
+        .catch((error) => {
+            console.error('Error initializing battle:', error);
+            
+            // Fallback initialization with local data
+            const enemyList = this.ENEMIES[this.difficulty];
+            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+            this.enemyMaxHP = this.currentEnemy.hp;
+            this.enemyHP = this.enemyMaxHP;
+            
+            // Use local gameData as fallback
+            this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
 
             // Create scene elements
             this.createBackground();
@@ -104,55 +135,56 @@ class BattleScene extends Phaser.Scene {
         localStorage.removeItem('authToken');
         gameData.user = null;
         gameData.isLoggedIn = false;
+        gameData._logoutRequested = true;
 
         // Go back to menu scene
         this.scene.start('MenuScene');
     }
 
-    async fetchPlayerData() {
+    
+    async fetchPlayerData(token) {
         try {
-            const token = localStorage.getItem('authToken');
+            const headers = {
+                "Content-Type": "application/json",
+            };
 
-            if (token && token !== 'local-user-token') {
-                // Fetch from backend API
-                const response = await fetch('http://localhost:8000/api/player', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`
-                    }
-                });
+            if (token) {
+                headers["Authorization"] = `Token ${token}`;
+            }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Player data from API:', data);
+            const res = await fetch("http://127.0.0.1:8000/api/player", {
+                method: "GET",
+                headers
+            });
 
-                    // Sync with gameData and use API values
-                    this.playerMaxHP = data.max_hp;
-                    this.playerHP = this.playerMaxHP;
-                    this.playerCoins = data.coins;
-
-                    // Update global gameData to stay in sync
-                    if (gameData.user) {
-                        gameData.user.level = data.level;
-                        gameData.user.max_hp = data.max_hp;
-                        gameData.user.coins = data.coins;
-                        gameData.user.wins = data.wins;
-                    }
-                    return;
-                }
+            if (!res.ok) {
+                throw new Error(`Error ${res.status}: ${res.statusText}`);
+            }
+            
+            this.playerData = await res.json();
+            
+            // Update player stats from API data
+            this.playerMaxHP = this.playerData.max_hp;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = this.playerData.coins;
+            
+            // Update global gameData to stay in sync
+            if (gameData.user) {
+                gameData.user.level = this.playerData.level;
+                gameData.user.max_hp = this.playerData.max_hp;
+                gameData.user.coins = this.playerData.coins;
+                gameData.user.wins = this.playerData.wins;
             }
         } catch (error) {
-            console.error('Failed to fetch player data from API:', error);
+            console.error('Failed to fetch player data:', error);
+            
+            // Fallback to local gameData if API fails
+            this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
         }
-
-        // Fallback to local gameData if API fails or using local auth
-        console.log('Using local gameData for player stats');
-        // Use stored max_hp if available, otherwise calculate from level
-        this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
-        this.playerHP = this.playerMaxHP;
-        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
     }
+
 
     createShopIcon() {
     const iconX = this.cameras.main.width - 340;
@@ -1266,7 +1298,12 @@ class BattleScene extends Phaser.Scene {
     }
 
     battleVictory() {
+        if (this.battleState === 'ended') return;
         this.battleState = 'ended';
+
+        // Stop any queued battle timers (e.g., delayed next-question callbacks)
+        // to prevent post-victory code from running and potentially resetting the game.
+        if (this.time) this.time.removeAllEvents();
 
         // Award coins
         const coinsWon = this.currentEnemy.coins;
@@ -1293,7 +1330,10 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Report win to backend API to sync stats (will override local if successful)
-        this.reportWinToBackend();
+        // Never allow this async call to crash the scene flow.
+        this.reportWinToBackend().catch((error) => {
+            console.error('Failed to report win to backend:', error);
+        });
 
         // Show victory overlay
         this.showResultOverlay(true, coinsWon);
@@ -1304,7 +1344,7 @@ class BattleScene extends Phaser.Scene {
             const token = localStorage.getItem('authToken');
 
             if (token && token !== 'local-user-token') {
-                const response = await fetch('http://localhost:8000/api/report-win', {
+                const response = await fetch('http://127.0.0.1:8000/api/report-win', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1320,12 +1360,15 @@ class BattleScene extends Phaser.Scene {
                     if (gameData.user) {
                         gameData.user.coins = data.new_coins;
                         gameData.user.wins = data.new_wins;
+                        console.log('Updated gameData - coins:', gameData.user.coins, 'wins:', gameData.user.wins);
                     }
 
                     // Show level up message if applicable
                     if (data.leveled_up) {
                         this.showMessage(data.message, '#FFD700');
                     }
+                } else {
+                    console.log('Failed to report win to backend, using local data');
                 }
             }
         } catch (error) {
@@ -1334,7 +1377,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     battleDefeat() {
+        if (this.battleState === 'ended') return;
         this.battleState = 'ended';
+
+        // Stop any queued battle timers (e.g., delayed next-question callbacks)
+        if (this.time) this.time.removeAllEvents();
 
         // Show defeat overlay
         this.showResultOverlay(false, 0);
@@ -1346,6 +1393,10 @@ class BattleScene extends Phaser.Scene {
             this.logoutBtn.setVisible(false);
             this.logoutBtn.removeInteractive();
         }
+
+        // Disable other in-battle interactions under the overlay
+        if (this.shopHitArea) this.shopHitArea.removeInteractive();
+        if (this.questionHitArea) this.questionHitArea.removeInteractive();
 
         // Overlay
         const overlay = this.add.graphics();
@@ -1383,23 +1434,19 @@ class BattleScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
-        // Continue button
+        // Continue button - fixed with proper depth and immediate transition
         const continueBtn = this.add.text(this.cameras.main.centerX, panelY + 190, 'CONTINUE', {
             fontFamily: 'Fredoka One',
-            fontSize: '20px',
+            fontSize: '24px',
             color: '#ffffff',
             backgroundColor: victory ? '#4EC5F1' : '#666666',
-            padding: { x: 30, y: 12 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            padding: { x: 40, y: 15 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(99999);
 
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
         continueBtn.on('pointerdown', () => {
-            //this.scene.start('MapScene');
+            this.scene.start('MapScene');
         });
-    }
-
-    getDifficultyNumber() {
-        return this.difficulty === 'easy' ? 1 : this.difficulty === 'medium' ? 2 : 3;
     }
 }

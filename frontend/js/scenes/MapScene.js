@@ -23,36 +23,7 @@ class MapScene extends Phaser.Scene {
   }
 
   async fetchPlayerData() {
-    try {
-      const token = localStorage.getItem('authToken');
-
-      if (token && token !== 'local-user-token') {
-        // Fetch from backend API
-        const response = await fetch('http://localhost:8000/api/player', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Token ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Player data from API:', data);
-
-          // Update global gameData with backend values
-          if (gameData.user) {
-            gameData.user.level = data.level;
-            gameData.user.max_hp = data.max_hp;
-            gameData.user.coins = data.coins;
-            gameData.user.wins = data.wins;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch player data:', error);
-    }
-
+    
     // Set values from gameData (either from API or local)
     this.coins = gameData.user ? gameData.user.coins : 50;
     this.playerLevel = gameData.user ? gameData.user.level : 1;
@@ -327,41 +298,8 @@ class MapScene extends Phaser.Scene {
           return;
         }
 
-        // Call backend API to buy health
-        const token = localStorage.getItem('authToken');
+        console.log('Skipping buy health API call, using local update only');
         let apiSuccess = false;
-
-        if (token && token !== 'local-user-token') {
-          try {
-            const response = await fetch(`http://localhost:8000/api/buy-health?amount=${pack.hp}&cost=${pack.cost}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${token}`
-              }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log('Buy health API response:', data);
-
-              // Update local state with API response
-              this.coins = data.new_coins;
-              this.playerMaxHP = data.new_max_hp;
-              apiSuccess = true;
-
-              // Sync with gameData
-              if (gameData.user) {
-                gameData.user.coins = data.new_coins;
-                gameData.user.max_hp = data.new_max_hp;
-              }
-            } else {
-              console.error('Buy health API failed:', response.status);
-            }
-          } catch (error) {
-            console.error('Failed to call buy-health API:', error);
-          }
-        }
 
         // Fallback to local update if API failed or using local auth
         if (!apiSuccess) {
@@ -468,6 +406,7 @@ class MapScene extends Phaser.Scene {
     localStorage.removeItem('authToken');
     gameData.user = null;
     gameData.isLoggedIn = false;
+    gameData._logoutRequested = true;
 
     // Go back to menu scene
     this.scene.start('MenuScene');

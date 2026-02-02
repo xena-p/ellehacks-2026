@@ -70,6 +70,64 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
+        if (typeof gameData !== 'undefined') {
+            gameData._booting = false;
+        }
+
+        const token = localStorage.getItem('authToken');
+        if (token && token !== 'local-user-token') {
+            this.tryAutoLogin(token);
+            return;
+        }
+        // Create the sky background
+        this.createBackground();
+
+        // Create the animated game title
+        this.createGameTitle();
+
+        // Create the piggy bank mascot
+        this.createMascot();
+
+        // Create the login/register form
+        this.createAuthForm();
+
+        // Start sparkle effects
+        this.startSparkleEffects();
+
+        // Play entrance animations
+        this.playEntranceAnimations();
+    }
+
+    async tryAutoLogin(token) {
+        try {
+            const playerRes = await fetch('http://127.0.0.1:8000/api/player', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}`
+                }
+            });
+
+            const player = await playerRes.json().catch(() => null);
+
+            if (playerRes.ok && player && !player.error) {
+                const username = localStorage.getItem('username') || 'Player';
+                gameData.user = {
+                    username,
+                    level: player.level,
+                    wins: player.wins,
+                    coins: player.coins,
+                    max_hp: player.max_hp
+                };
+                gameData.isLoggedIn = true;
+                gameData._logoutRequested = false;
+
+                this.scene.start('MapScene');
+                return;
+            }
+        } catch (e) {
+        }
+
         // Create the sky background
         this.createBackground();
 
@@ -606,6 +664,7 @@ async handleSubmit() {
 
     // Save the REAL token
     localStorage.setItem('authToken', data.token);
+    localStorage.setItem('username', username);
 
     // Now fetch player stats using the token
     const playerRes = await fetch('http://localhost:8000/api/player', {
@@ -634,6 +693,7 @@ async handleSubmit() {
       max_hp: player.max_hp
     };
     gameData.isLoggedIn = true;
+    gameData._logoutRequested = false;
 
     // Success UI
     errorDiv.style.color = '#2E7D32';
@@ -657,7 +717,7 @@ async handleSubmit() {
         const errorDiv = this.formElement.getChildByID('error-message');
 
         // Store a simple token for API calls (can be any string for local mode)
-        localStorage.setItem('authToken', 'local-user-token');
+        localStorage.setItem("authToken", response.token);
 
         // Store user data
         gameData.user = {
