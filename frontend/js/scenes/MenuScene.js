@@ -138,6 +138,76 @@ class MenuScene extends Phaser.Scene {
         this.scene.restart();
     }
 }
+
+async login(username, password) {
+    const errorDiv = this.formElement.getChildByID('error-message');
+
+    try {
+        const url =
+            `http://127.0.0.1:8000/api/auth/login` +
+            `?username=${encodeURIComponent(username)}` +
+            `&password=${encodeURIComponent(password)}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data || data.error || !data.token) {
+            errorDiv.style.color = '#DC143C';
+            errorDiv.textContent = (data && data.error) ? data.error : 'Invalid username or password.';
+            return null;
+        }
+
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('username', username);
+        return data.token;
+    } catch (err) {
+        console.error('Login Error:', err);
+        errorDiv.style.color = '#DC143C';
+        errorDiv.textContent = 'Could not connect to the server.';
+        return null;
+    }
+}
+
+    async register(username, password) {
+        const errorDiv = this.formElement.getChildByID('error-message');
+
+        try {
+            // Call Django Ninja API signup endpoint
+            const response = await fetch(`http://127.0.0.1:8000/api/auth/signup?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            console.log('Register response:', data);
+
+            if (!response.ok || data.error || !data.token) {
+                errorDiv.style.color = '#DC143C';
+                errorDiv.textContent = data.error || 'Registration failed. Please try again.';
+                return false;
+            }
+
+            errorDiv.style.color = '#2E7D32';
+            errorDiv.textContent = 'Account created! Please log in.';
+
+            this.time.delayedCall(600, () => {
+                if (!this.isLoginMode) {
+                    this.toggleMode();
+                }
+            });
+
+            return true;
+
+        } catch (error) {
+            errorDiv.textContent = 'Registration failed. Please try again.';
+            console.error('Register error:', error);
+            return false;
+        }
+    }
     
 
     
@@ -635,74 +705,90 @@ async handleSubmit() {
   errorDiv.style.color = '#666666';
   errorDiv.textContent = this.isLoginMode ? 'Logging in...' : 'Creating account...';
 
-  try {
-    const endpoint = this.isLoginMode ? 'login' : 'signup';
-
-    const url =
-      `http://localhost:8000/api/auth/${endpoint}` +
-      `?username=${encodeURIComponent(username)}` +
-      `&password=${encodeURIComponent(password)}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    const data = await response.json();
-    console.log('Auth response:', data);
-
-    if (!response.ok || data.error || !data.token) {
-      errorDiv.style.color = '#DC143C';
-      errorDiv.textContent = data.error || 'Authentication failed.';
-      return;
-    }
-
-    // Save the REAL token
-    localStorage.setItem('authToken', data.token);
-    localStorage.setItem('username', username);
-
-    // Now fetch player stats using the token
-    const playerRes = await fetch('http://localhost:8000/api/player', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${data.token}`
-      }
-    });
-
-    const player = await playerRes.json();
-    console.log('Player:', player);
-
-    if (!playerRes.ok || player.error) {
-      errorDiv.style.color = '#DC143C';
-      errorDiv.textContent = player.error || 'Could not load player profile.';
-      return;
-    }
-
-    // Store REAL player data in global gameData
-    gameData.user = {
-      username,
-      level: player.level,
-      wins: player.wins,
-      coins: player.coins,
-      max_hp: player.max_hp
-    };
-    gameData.isLoggedIn = true;
-    gameData._logoutRequested = false;
-
-    // Success UI
-    errorDiv.style.color = '#2E7D32';
-    errorDiv.textContent = 'Success! Loading map...';
-
-    this.time.delayedCall(600, () => {
-      this.scene.start('MapScene');
-    });
-
-  } catch (err) {
-    console.error(err);
-    errorDiv.style.color = '#DC143C';
-    errorDiv.textContent = 'Wrong username or password. Please try again';
+  let token = null;
+  if (this.isLoginMode) {
+     token = await this.login(username, password);
+  } else {
+     await this.register(username, password);
+     return;
   }
+
+  if (token) {
+    await this.tryAutoLogin(token);
+  }
+
+  // UI: show loading state
+//   errorDiv.style.color = '#666666';
+//   errorDiv.textContent = this.isLoginMode ? 'Logging in...' : 'Creating account...';
+
+//   try {
+//     const endpoint = this.isLoginMode ? 'login' : 'signup';
+
+//     const url =
+//       `http://localhost:8000/api/auth/${endpoint}` +
+//       `?username=${encodeURIComponent(username)}` +
+//       `&password=${encodeURIComponent(password)}`;
+
+//     const response = await fetch(url, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' }
+//     });
+
+//     const data = await response.json();
+//     console.log('Auth response:', data);
+
+//     if (!response.ok || data.error || !data.token) {
+//       errorDiv.style.color = '#DC143C';
+//       errorDiv.textContent = data.error || 'Authentication failed.';
+//       return;
+//     }
+
+//     // Save the REAL token
+//     localStorage.setItem('authToken', data.token);
+//     localStorage.setItem('username', username);
+
+//     // Now fetch player stats using the token
+//     const playerRes = await fetch('http://localhost:8000/api/player', {
+//       method: 'GET',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Token ${data.token}`
+//       }
+//     });
+
+//     const player = await playerRes.json();
+//     console.log('Player:', player);
+
+//     if (!playerRes.ok || player.error) {
+//       errorDiv.style.color = '#DC143C';
+//       errorDiv.textContent = player.error || 'Could not load player profile.';
+//       return;
+//     }
+
+//     // Store REAL player data in global gameData
+//     gameData.user = {
+//       username,
+//       level: player.level,
+//       wins: player.wins,
+//       coins: player.coins,
+//       max_hp: player.max_hp
+//     };
+//     gameData.isLoggedIn = true;
+//     gameData._logoutRequested = false;
+
+//     // Success UI
+//     errorDiv.style.color = '#2E7D32';
+//     errorDiv.textContent = 'Success! Loading map...';
+
+//     this.time.delayedCall(600, () => {
+//       this.scene.start('MapScene');
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     errorDiv.style.color = '#DC143C';
+//     errorDiv.textContent = 'Wrong username or password. Please try again';
+//   }
 }
 
 
