@@ -197,6 +197,8 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
+    
+
     createShopIcon() {
     const iconX = this.cameras.main.width - 340;
     const iconY = 25;
@@ -1417,7 +1419,10 @@ class BattleScene extends Phaser.Scene {
     }
 
     battleVictory() {
+        if (this.battleState === 'ended') return;
         this.battleState = 'ended';
+
+        if (this.time) this.time.removeAllEvents();
 
         // Award coins
         const coinsWon = this.currentEnemy.coins;
@@ -1431,7 +1436,7 @@ class BattleScene extends Phaser.Scene {
             // Local level up logic (mirrors backend LEVEL_THRESHOLDS)
             const wins = gameData.user.wins;
             const oldLevel = gameData.user.level;
-            if (wins >= 4) gameData.user.level = 5;
+            if (wins >= 5) gameData.user.level = 5;
             else if (wins >= 3) gameData.user.level = 4;
             else if (wins >= 2) gameData.user.level = 3;
             else if (wins >= 1) gameData.user.level = 2;
@@ -1444,7 +1449,9 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Report win to backend API to sync stats (will override local if successful)
-        this.reportWinToBackend();
+        this._winReportPromise = this.reportWinToBackend().catch((error) => {
+            console.error('Failed to report win to backend:', error);
+        });
 
         // Show victory overlay
         this.showResultOverlay(true, coinsWon);
@@ -1455,30 +1462,53 @@ class BattleScene extends Phaser.Scene {
             const token = localStorage.getItem('authToken');
 
             if (token && token !== 'local-user-token') {
-                const response = await fetch('http://localhost:8000/api/report-win', {
+                const response = await fetch('http://127.0.0.1:8000/api/report-win', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        token: token
-                    })
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    }
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Win reported to backend:', data);
+                if (!response.ok) {
+                    console.error('Report win API failed:', response.status);
+                    return;
+                }
 
-                    // Update local gameData with server response
-                    if (gameData.user) {
-                        gameData.user.coins = data.new_coins;
-                        gameData.user.wins = data.new_wins;
-                    }
+                const data = await response.json();
+                console.log('Win reported to backend:', data);
 
-                    // Show level up message if applicable
-                    if (data.leveled_up) {
-                        this.showMessage(data.message, '#FFD700');
+                // Update local gameData with server response
+                if (!gameData.user) gameData.user = {};
+                if (typeof data.new_coins === 'number') gameData.user.coins = data.new_coins;
+                if (typeof data.new_wins === 'number') gameData.user.wins = data.new_wins;
+
+                // Show level up message if applicable
+                if (data.leveled_up) {
+                    this.showMessage(data.message, '#FFD700');
+                }
+
+                // Sync full player state (including level) from backend after win
+                try {
+                    const playerRes = await fetch('http://127.0.0.1:8000/api/player', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Token ${token}`
+                        }
+                    });
+
+                    if (playerRes.ok) {
+                        const playerData = await playerRes.json();
+
+                        if (!gameData.user) gameData.user = {};
+                        gameData.user.level = playerData.level;
+                        gameData.user.max_hp = playerData.max_hp;
+                        gameData.user.coins = playerData.coins;
+                        gameData.user.wins = playerData.wins;
                     }
+                } catch (e) {
+                    console.error('Failed to sync player after win:', e);
                 }
             }
         } catch (error) {
@@ -1547,7 +1577,23 @@ class BattleScene extends Phaser.Scene {
 
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: victory ? '#3BA8D8' : '#555555' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: victory ? '#4EC5F1' : '#666666' }));
-        continueBtn.on('pointerdown', () => {
+        continueBtn.on('pointerdown', async () => {
+            if (continueBtn._busy) return;
+            continueBtn._busy = true;
+            continueBtn.disableInteractive();
+            continueBtn.setText('LOADING...');
+
+            if (victory && this._winReportPromise) {
+                try {
+                    const timeoutPromise = new Promise((resolve) => {
+                        this.time.delayedCall(800, resolve);
+                    });
+                    await Promise.race([this._winReportPromise, timeoutPromise]);
+                } catch (_) {
+                    // Non-fatal; continue to MapScene regardless
+                }
+            }
+
             this.scene.start('MapScene');
         });
     }

@@ -28,7 +28,7 @@ class MapScene extends Phaser.Scene {
 
       if (token && token !== 'local-user-token') {
         // Fetch from backend API
-        const response = await fetch('http://localhost:8000/api/player', {
+        const response = await fetch('http://127.0.0.1:8000/api/player', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -41,12 +41,11 @@ class MapScene extends Phaser.Scene {
           console.log('Player data from API:', data);
 
           // Update global gameData with backend values
-          if (gameData.user) {
-            gameData.user.level = data.level;
-            gameData.user.max_hp = data.max_hp;
-            gameData.user.coins = data.coins;
-            gameData.user.wins = data.wins;
-          }
+          if (!gameData.user) gameData.user = {};
+          gameData.user.level = data.level;
+          gameData.user.max_hp = data.max_hp;
+          gameData.user.coins = data.coins;
+          gameData.user.wins = data.wins;
         }
       }
     } catch (error) {
@@ -333,7 +332,7 @@ class MapScene extends Phaser.Scene {
 
         if (token && token !== 'local-user-token') {
           try {
-            const response = await fetch(`http://localhost:8000/api/buy-health?amount=${pack.hp}&cost=${pack.cost}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/buy-health?amount=${pack.hp}&cost=${pack.cost}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -466,6 +465,7 @@ class MapScene extends Phaser.Scene {
   handleLogout() {
     // Clear auth token and user data
     localStorage.removeItem('authToken');
+    gameData._logoutRequested = true;
     gameData.user = null;
     gameData.isLoggedIn = false;
 
