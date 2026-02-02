@@ -20,17 +20,17 @@ class WinResponse(Schema):
     leveled_up: bool
     message: str
 
-@api.get("/hello", auth=TokenAuth())
-def hello(request):
-    return {"message": "Hello from your Game Backend!"}
+# @api.get("/hello", auth=TokenAuth())
+# def hello(request):
+#     return {"message": "Hello from your Game Backend!"}
 
-@api.get("/math_question", auth=TokenAuth())
-def get_math_question(request):
-    return {
-        "question": "5 + 3",
-        "answer": 8,
-        "options": [6, 8, 9, 10]
-    }
+# @api.get("/math_question", auth=TokenAuth())
+# def get_math_question(request):
+#     return {
+#         "question": "5 + 3",
+#         "answer": 8,
+#         "options": [6, 8, 9, 10]
+#     }
 
 @api.post("/buy-health", auth=TokenAuth())
 def buy_health(request, amount: int, cost: int):
@@ -111,28 +111,28 @@ def get_player(request):
         "wins": player.wins
     }
 
-@api.post("/game/start", auth=TokenAuth())
-def start_game(request):
-    if not request.auth.is_authenticated:
-        return {"message": "Authentication required"}, 401
+# @api.post("/game/start", auth=TokenAuth())
+# def start_game(request):
+#     if not request.auth.is_authenticated:
+#         return {"message": "Authentication required"}, 401
 
-    user = request.auth
-    map_level = user.level  # Start game at user's current level
+#     user = request.auth
+#     map_level = user.level  # Start game at user's current level
 
-    if not user.can_access_map(map_level):
-        return {"error": "Map locked"}
+#     if not user.can_access_map(map_level):
+#         return {"error": "Map locked"}
 
-    run = GameRun.objects.create(
-        user=user,
-        map_level=map_level,
-        current_hp=user.get_max_hp()
-    )
+#     run = GameRun.objects.create(
+#         user=user,
+#         map_level=map_level,
+#         current_hp=user.get_max_hp()
+#     )
 
-    return {
-        "game_run_id": run.id,
-        "starting_hp": run.current_hp,
-        "map_level": run.map_level
-    }
+#     return {
+#         "game_run_id": run.id,
+#         "starting_hp": run.current_hp,
+#         "map_level": run.map_level
+#     }
 
 
 
