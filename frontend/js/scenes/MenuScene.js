@@ -610,7 +610,7 @@ class MenuScene extends Phaser.Scene {
         this.setupFormListeners();
     }
 
-handleSubmit() {
+async handleSubmit() {
   const username = this.formElement.getChildByID('username').value.trim();
   const password = this.formElement.getChildByID('password').value;
   const errorDiv = this.formElement.getChildByID('error-message');
@@ -631,17 +631,78 @@ handleSubmit() {
     return;
   }
 
-  // Optional: "Sign up" can feel different but still local
-  if (!this.isLoginMode) {
-    // Save fake "registered users" list (just for show)
-    const raw = localStorage.getItem('finquest_users');
-    const users = raw ? JSON.parse(raw) : {};
-    users[username] = { createdAt: Date.now() };
-    localStorage.setItem('finquest_users', JSON.stringify(users));
-  }
+  // UI: show loading state
+  errorDiv.style.color = '#666666';
+  errorDiv.textContent = this.isLoginMode ? 'Logging in...' : 'Creating account...';
 
-  // Always allow login if validations pass
-  this.startGame(username);
+  try {
+    const endpoint = this.isLoginMode ? 'login' : 'signup';
+
+    const url =
+      `http://localhost:8000/api/auth/${endpoint}` +
+      `?username=${encodeURIComponent(username)}` +
+      `&password=${encodeURIComponent(password)}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+    console.log('Auth response:', data);
+
+    if (!response.ok || data.error || !data.token) {
+      errorDiv.style.color = '#DC143C';
+      errorDiv.textContent = data.error || 'Authentication failed.';
+      return;
+    }
+
+    // Save the REAL token
+    localStorage.setItem('authToken', data.token);
+    localStorage.setItem('username', username);
+
+    // Now fetch player stats using the token
+    const playerRes = await fetch('http://localhost:8000/api/player', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${data.token}`
+      }
+    });
+
+    const player = await playerRes.json();
+    console.log('Player:', player);
+
+    if (!playerRes.ok || player.error) {
+      errorDiv.style.color = '#DC143C';
+      errorDiv.textContent = player.error || 'Could not load player profile.';
+      return;
+    }
+
+    // Store REAL player data in global gameData
+    gameData.user = {
+      username,
+      level: player.level,
+      wins: player.wins,
+      coins: player.coins,
+      max_hp: player.max_hp
+    };
+    gameData.isLoggedIn = true;
+    gameData._logoutRequested = false;
+
+    // Success UI
+    errorDiv.style.color = '#2E7D32';
+    errorDiv.textContent = 'Success! Loading map...';
+
+    this.time.delayedCall(600, () => {
+      this.scene.start('MapScene');
+    });
+
+  } catch (err) {
+    console.error(err);
+    errorDiv.style.color = '#DC143C';
+    errorDiv.textContent = 'Wrong username or password. Please try again';
+  }
 }
 
 
@@ -652,15 +713,15 @@ handleSubmit() {
         const errorDiv = this.formElement.getChildByID('error-message');
 
         // Store a simple token for API calls (can be any string for local mode)
-        localStorage.setItem('authToken', 'local-user-token');
+        localStorage.setItem("authToken", response.token);
 
         // Store user data
         gameData.user = {
             username: username,
-            level: 1,
-            wins: 0,
-            coins: 50,
-            max_hp: 100
+            level: player.level,
+            wins: player.wins,
+            coins: player.coins,
+            max_hp: player.max_hp
         };
         gameData.isLoggedIn = true;
 
