@@ -72,6 +72,12 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
+        
+        const token = localStorage.getItem('authToken');
+        if (token && token !== 'local-user-token') {
+            this.tryAutoLogin(token);
+            return;
+        }
         // Create the sky background
         this.createBackground();
 
@@ -90,6 +96,51 @@ class MenuScene extends Phaser.Scene {
         // Play entrance animations
         this.playEntranceAnimations();
     }
+
+    async tryAutoLogin(token) {
+    try {
+        const playerRes = await fetch('http://127.0.0.1:8000/api/player', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${token}` // Django Ninja usually uses 'Token' or 'Bearer'
+            }
+        });
+
+        const player = await playerRes.json().catch(() => null);
+
+        if (playerRes.ok && player && !player.error) {
+            const username = localStorage.getItem('username') || 'Player';
+            
+            // Set your global game data
+            gameData.user = {
+                username,
+                level: player.level,
+                wins: player.wins,
+                coins: player.coins,
+                max_hp: player.max_hp
+            };
+            gameData.isLoggedIn = true;
+            gameData._logoutRequested = false;
+
+            // Successfully logged in! Jump to the map.
+            this.scene.start('MapScene');
+        } else {
+            // Token was invalid or expired
+            console.warn("Auto-login failed: Invalid token.");
+            localStorage.removeItem('authToken');
+            this.scene.restart(); // Restart to show the login form properly
+        }
+    } catch (e) {
+        console.error("Network error during auto-login:", e);
+        // Fallback: show login form if the server is down or unreachable
+        localStorage.removeItem('authToken');
+        this.scene.restart();
+    }
+}
+    
+
+    
 
     // ============ SPARKLE SYSTEM ============
     createSparkle(x, y, color = 0xFFD700) {
@@ -186,7 +237,7 @@ class MenuScene extends Phaser.Scene {
         this.titleContainer.setDepth(50);
 
         // Main title text
-        this.gameTitle = this.add.text(0, 0, 'Fortune Island}', {
+        this.gameTitle = this.add.text(0, 0, 'Fortune Island', {
             fontFamily: 'Fredoka One',
             fontSize: '64px',
             color: '#FFD700',

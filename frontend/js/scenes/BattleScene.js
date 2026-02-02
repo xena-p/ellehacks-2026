@@ -74,13 +74,43 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
+        const token = localStorage.getItem("authToken");
         // Fetch player data from API, then initialize the battle
-        this.fetchPlayerData().then(() => {
+        this.fetchPlayerData(token)
+        .then(() => {
             // Select random enemy based on difficulty
             const enemyList = this.ENEMIES[this.difficulty];
             this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
             this.enemyMaxHP = this.currentEnemy.hp;
             this.enemyHP = this.enemyMaxHP;
+
+            // Create scene elements
+            this.createBackground();
+            this.createCharacters();
+            this.createHealthBars();
+            this.createSpellBar();
+            this.createCoinDisplay();
+            this.createShopIcon();
+            this.createQuestionIcon();
+            this.createLogoutButton();
+
+            // Start battle with first question
+            this.battleState = 'battle';
+            this.showQuestion();
+        })
+        .catch((error) => {
+            console.error('Error initializing battle:', error);
+            
+            // Fallback initialization with local data
+            const enemyList = this.ENEMIES[this.difficulty];
+            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
+            this.enemyMaxHP = this.currentEnemy.hp;
+            this.enemyHP = this.enemyMaxHP;
+            
+            // Use local gameData as fallback
+            this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
 
             // Create scene elements
             this.createBackground();
@@ -124,49 +154,47 @@ class BattleScene extends Phaser.Scene {
         this.scene.start('MenuScene');
     }
 
-    async fetchPlayerData() {
+    async fetchPlayerData(token) {
         try {
-            const token = localStorage.getItem('authToken');
+            const headers = {
+                "Content-Type": "application/json",
+            };
 
-            if (token && token !== 'local-user-token') {
-                // Fetch from backend API
-                const response = await fetch('http://localhost:8000/api/player', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`
-                    }
-                });
+            if (token) {
+                headers["Authorization"] = `Token ${token}`;
+            }
 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Player data from API:', data);
+            const res = await fetch("http://127.0.0.1:8000/api/player", {
+                method: "GET",
+                headers
+            });
 
-                    // Sync with gameData and use API values
-                    this.playerMaxHP = data.max_hp;
-                    this.playerHP = this.playerMaxHP;
-                    this.playerCoins = data.coins;
-
-                    // Update global gameData to stay in sync
-                    if (gameData.user) {
-                        gameData.user.level = data.level;
-                        gameData.user.max_hp = data.max_hp;
-                        gameData.user.coins = data.coins;
-                        gameData.user.wins = data.wins;
-                    }
-                    return;
-                }
+            if (!res.ok) {
+                throw new Error(`Error ${res.status}: ${res.statusText}`);
+            }
+            
+            this.playerData = await res.json();
+            
+            // Update player stats from API data
+            this.playerMaxHP = this.playerData.max_hp;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = this.playerData.coins;
+            
+            // Update global gameData to stay in sync
+            if (gameData.user) {
+                gameData.user.level = this.playerData.level;
+                gameData.user.max_hp = this.playerData.max_hp;
+                gameData.user.coins = this.playerData.coins;
+                gameData.user.wins = this.playerData.wins;
             }
         } catch (error) {
-            console.error('Failed to fetch player data from API:', error);
+            console.error('Failed to fetch player data:', error);
+            
+            // Fallback to local gameData if API fails
+            this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
+            this.playerHP = this.playerMaxHP;
+            this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
         }
-
-        // Fallback to local gameData if API fails or using local auth
-        console.log('Using local gameData for player stats');
-        // Use stored max_hp if available, otherwise calculate from level
-        this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
-        this.playerHP = this.playerMaxHP;
-        this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
     }
 
     createShopIcon() {
