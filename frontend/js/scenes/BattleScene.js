@@ -982,6 +982,36 @@ class BattleScene extends Phaser.Scene {
     explanation: 'Saving helps you prepare for future challenges.'
   },
 
+  {
+  question: 'You want a potion later. What should you do with your coins now?',
+  options: ['Spend all coins', 'Save some coins', 'Throw coins away', 'Forget coins'],
+  correct: 1,
+  explanation: 'Saving coins lets you buy things you need later.'
+  },
+  
+  {
+  question: 'What happens if you spend all your coins too fast?',
+  options: ['You have more coins', 'You may not have coins later', 'Coins grow back', 'Nothing matters'],
+  correct: 1,
+  explanation: 'Spending too fast can leave you unprepared.'
+  },
+
+  {
+  question: 'You get 5 coins and save them. Is this a good idea?',
+  options: ['Yes, saving helps', 'No, spend them now', 'Only at night', 'Only on swords'],
+  correct: 0,
+  explanation: 'Saving coins helps you plan for future needs.'
+  },
+
+  {
+  question: 'What is a smart reason to save coins?',
+  options: ['Coins are shiny', 'You might need them later', 'Coins disappear', 'To slow the game'],
+  correct: 1,
+  explanation: 'Saving prepares you for future challenges.'
+  },
+
+
+
   // ===== BUDGET CITY (Medium) =====
   {
     question: 'What is a budget?',
