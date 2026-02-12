@@ -8,17 +8,16 @@ The goal of Fortune Island is to make learning about budgeting, smart spending a
 ## Screenshots
 
 ### Landing Screen
-![Landing Screen](assets/screenshots/Landing.png)
+<img src="assets/screenshots/Landing.png" width="900" />
 
 ### Gameplay
-![Gameplay](assets/screenshots/Gameplay.png)
+<img src="assets/screenshots/Gameplay.png" width="900" />
 
 ### Map and Spell Shop 
-![MapShop](assets/screenshots/MapShop.png)
-![SpellShop](assets/screenshots/SpellShop.png)
+<img src="assets/screenshots/MapShop.png" width="501" /> <img src="assets/screenshots/SpellShop.png" width="501" />
 
 ### Rewards System
-![Rewards](assets/screenshots/rewards.png)
+<img src="assets/screenshots/rewards.png" width="900" />
 
 ---
 # Tech Stack
