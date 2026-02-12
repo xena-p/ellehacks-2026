@@ -5,6 +5,22 @@ Fortune Island is an interactive finance-based game designed to teach kids finan
 The goal of Fortune Island is to make learning about budgeting, smart spending and financial responsibility engaging and accessible for younger audiences.
 
 ---
+## Screenshots
+
+### Landing Screen
+![Landing Screen](assets/screenshots/Landing.png)
+
+### Gameplay
+![Gameplay](assets/screenshots/Gameplay.png)
+
+### Map and Spell Shop 
+![MapShop](assets/screenshots/MapShop.png)
+![SpellShop](assets/screenshots/SpellShop.png)
+
+### Rewards System
+![Rewards](assets/screenshots/rewards.png)
+
+---
 # Tech Stack
 
 Backend: Django + Django Ninja (REST API)
