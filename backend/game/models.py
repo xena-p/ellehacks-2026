@@ -1,13 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.db import transaction
+from django.core.exceptions import ValidationError
 # Create your models here.
 
-class TestItem(models.Model):
-    name = models.CharField(max_length=100)
+# class TestItem(models.Model):
+#     name = models.CharField(max_length=100)
 
-    def __str__(self):
-        return self.name
+#     def __str__(self):
+#         return self.name
 
 LEVEL_THRESHOLDS = {
     1: 0,
@@ -17,43 +19,77 @@ LEVEL_THRESHOLDS = {
     5: 5,
 }
 
+
+
+class PermanentUpgrade(models.Model):
+    name = models.CharField(max_length=100)
+    hp_bonus = models.IntegerField(default=0)
+    cost = models.IntegerField()
+
+    def __str__(self):
+        return self.name
+
 class Player(AbstractUser):
     coins = models.IntegerField(default=100) #start with 100 coins
     wins = models.IntegerField(default=0)
     level = models.IntegerField(default=1)
-    max_hp = models.IntegerField(default=100)
-
+    base_hp = models.IntegerField(default=100)
     
     created_at = models.DateTimeField(auto_now_add=True)
     MAX_LEVEL = 5
-    
+
+    upgrades = models.ManyToManyField(
+        PermanentUpgrade, 
+        through='UserPermanentUpgrade',
+        related_name='owners'
+    )
+
     class Meta:
-        # This helps fix some collision errors
+        #This helps fix some collision errors
         verbose_name = 'Player'
         verbose_name_plural = 'Players'
 
-
+    @property
+    def max_hp(self):
+        bonus = sum(
+            u.upgrade.hp_bonus
+            for u in self.permanent_upgrades.select_related("upgrade")
+        )
+        return self.base_hp + bonus
     
-    def get_attack_power(self):
+    def get_attack_power(self): #at a later point in time, change so that you can upgrade attack power
         """Calculate attack damage (base + equipment)"""
         base_attack = 25
         
         return base_attack
     
-    def recalculate_level(self):
-        for lvl, wins_required in LEVEL_THRESHOLDS.items():
-            if self.wins >= wins_required:
-                self.level = lvl
+    def update_username(self, new_username):
+        self.username = new_username
         self.save()
 
-
+    def update_password(self, new_password):
+        self.set_password(new_password)
+        self.save()
+    
+    def recalculate_level(self):
+        new_level = max(
+            lvl for lvl, wins_req in LEVEL_THRESHOLDS.items()
+            if self.wins >= wins_req
+        )
+        self.level = min(new_level, self.MAX_LEVEL)
+        self.save(update_fields=["level"])
+    
     def add_win(self, coins_earned: int):
-        if self.level < 6:
+        if self.level < self.MAX_LEVEL:
             self.wins += 1
         self.coins += coins_earned
         old_level = self.level
         self.recalculate_level()
+        self.save(update_fields=["wins", "coins"])
         return self.level > old_level  # did they level up?
+    
+
+
         
     def can_access_map(self, map_level: int):
         return self.level >= map_level
@@ -65,33 +101,32 @@ class Player(AbstractUser):
         return base_hp + bonus
 
     
-    def buy_upgrade(user, upgrade_id):
+    def buy_upgrade(self, upgrade_id):
         upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
 
-        if user.coins < upgrade.cost:
-            raise ("Not enough coins")
+        if self.coins < upgrade.cost:
+            return False, {"error": "Not enough coins"}
+        
+        self.base_hp += upgrade.hp_bonus
 
         UserPermanentUpgrade.objects.create(
-            user=user,
+            user=self,
             upgrade=upgrade
         )
 
-        user.coins -= upgrade.cost
-        user.save()
+        self.coins -= upgrade.cost
+        self.save()
+
+        return True, {
+            "new_coins": self.coins,
+            "new_base_hp": self.base_hp  
+        }
 
     
     def __str__(self):
         return f"{self.username} (Level {self.level})"
 
-
-class PermanentUpgrade(models.Model):
-    name = models.CharField(max_length=100)
-    hp_bonus = models.IntegerField(default=0)
-    cost = models.IntegerField()
-
-    def __str__(self):
-        return self.name
-
+    
 
 class UserPermanentUpgrade(models.Model):
     user = models.ForeignKey(
@@ -100,6 +135,7 @@ class UserPermanentUpgrade(models.Model):
         on_delete=models.CASCADE
     )
     upgrade = models.ForeignKey(PermanentUpgrade, on_delete=models.CASCADE)
+    purchased_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "upgrade")

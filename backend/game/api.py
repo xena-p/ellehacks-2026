@@ -33,24 +33,18 @@ class WinResponse(Schema):
 #     }
 
 @api.post("/buy-health", auth=TokenAuth())
-def buy_health(request, amount: int, cost: int):
+def buy_health(request, upgrade_id: int):#change to pack id (no amount and cost)
     """
     Permanently increases the player's max HP by 'amount' if they have enough coins.
     """
     player = request.auth
 
-    if player.coins < cost:
-        return {"error": "Not enough coins"}, 400
+    success, response = Player.buy_upgrade(player, upgrade_id) #make it for pack id
 
-    # Deduct coins and increase max HP
-    player.coins -= cost
-    player.max_hp += amount
-    player.save()
+    if not success:
+        return response, 400
 
-    return {
-        "new_coins": player.coins,
-        "new_max_hp": player.max_hp  # send back to frontend
-    }
+    return response
 
 @api.get("/generate-quiz", response=QuestionSchema, auth=TokenAuth())
 def get_quiz_question(request):
@@ -190,3 +184,31 @@ def end_game(request, game_run_id: int, won: bool):
         "new_level": request.user.level,
         "coins": request.user.coins
     }
+
+
+@api.delete("/player/delete", auth=TokenAuth())
+def delete_player(request):
+    player = request.auth
+
+    if not player:
+        return {"success": False, "error": "User not authenticated"}
+
+    player.delete()
+
+    return {"success": True}
+
+@api.patch("/player/username", auth=TokenAuth())
+def update_username(request, new_username: str):
+
+    player = request.auth
+    player.update_username(new_username)
+
+    return {"success": True, "username": player.username}
+
+@api.patch("/player/password", auth=TokenAuth())
+def update_password(request, new_password: str):
+
+    player = request.auth
+    player.update_password(new_password)
+
+    return {"success": True}
