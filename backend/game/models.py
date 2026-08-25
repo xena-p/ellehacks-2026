@@ -93,12 +93,6 @@ class Player(AbstractUser):
         
     def can_access_map(self, map_level: int):
         return self.level >= map_level
-    
-    def get_max_hp(self):
-        base_hp = 100
-        upgrades = self.permanent_upgrades.all()
-        bonus = sum(u.upgrade.hp_bonus for u in upgrades)
-        return base_hp + bonus
 
     
     def buy_upgrade(self, upgrade_id):
@@ -156,13 +150,35 @@ class Spell(models.Model):
     def __str__(self):
         return self.name
 
+class Enemy(models.Model):
+    name = models.CharField(max_length=100)
+    level = models.IntegerField(default=1)
 
+    def get_max_hp(self):
+        return 40 + (self.level * 10)
+
+    def get_attack_power(self):
+        return 5 + (self.level * 5)
+
+    def get_coin_reward(self):
+        return 5 + (self.level * 5)
+
+
+    def __str__(self):
+        return self.name
+    
 class GameRun(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     map_level = models.IntegerField(default=1)
     current_hp = models.IntegerField()
+    enemy_name = models.CharField(max_length=100, default="unknown")
+    enemy_hp = models.IntegerField(default=50)
+    enemy_attack_power = models.IntegerField(default=10)
     active = models.BooleanField(default=True)
+    reward_coins = models.IntegerField(default=10)
     started_at = models.DateTimeField(auto_now_add=True)
+    
+
 
     def end_run(self, won: bool):
         self.active = False

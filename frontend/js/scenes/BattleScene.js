@@ -927,244 +927,134 @@ class BattleScene extends Phaser.Scene {
   });
 }
 
-    showQuestion() {
-        // Hardcoded questions for now
-        const questions = [
+    async showQuestion() {
+        if (this.questionLoading) return;
+        this.questionLoading = true;
 
-  // ===== SAVINGS VILLAGE (Easy) =====
- {
-    question: 'Why is it good to think before spending money?',
-    options: ['So shopping takes longer', 'To avoid mistakes', 'Because money is boring', 'To spend more'],
-    correct: 1,
-    explanation: 'Thinking helps you make smarter choices.'
-  },
+        try {
+            const token = localStorage.getItem("authToken");
+                const response = await fetch(
+            "http://127.0.0.1:8000/api/generate-quiz",
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Token ${token}`
+                }
+            }
+            );
 
-  {
-    question: 'If two items are the same but one costs less, what should you do?',
-    options: ['Buy the expensive one', 'Buy both', 'Buy the cheaper one', 'Buy neither'],
-    correct: 2,
-    explanation: 'Choosing the cheaper item saves money!'
-  },
+            if (!response.ok) {
+                throw new Error(`Question request failed: ${response.status}`);
+            }
 
-  {
-    question: 'What should you do if you don’t need something right now?',
-    options: ['Buy it anyway', 'Save your money', 'Lose your money', 'Forget about money'],
-    correct: 1,
-    explanation: 'Saving money is smart when you don’t need something.'
-  },
+            const data = await response.json();
 
-  {
-    question: 'Which choice helps your money last longer?',
-    options: ['Spending fast', 'Planning how to spend', 'Buying everything', 'Borrowing money'],
-    correct: 1,
-    explanation: 'Planning helps money last!'
-  },
+            //Convert the backend format into the format expected by the existing frontend
+            const correctIndex = data.options.indexOf(data.answer);
 
+            if (correctIndex === -1) {
+                throw new Error("The correct answer is missing from the options");
+            }
 
-  {
-    question: 'A shop in the village sells the same sword for fewer coins. What should you do?',
-    options: ['Buy the more expensive one', 'Buy the cheaper one', 'Buy nothing forever', 'Drop your coins'],
-    correct: 1,
-    explanation: 'Finding the better deal saves coins!'
-  },
+            this.currentQuestion = {
+                question: data.question,
+                options: data.options,
+                correct: correctIndex,
+                explanation: data.explanation
+            };
+        
+            this.selectedAnswer = null; // Track selected answer
 
-   {
-    question: 'Why is it helpful to save coins for later levels?',
-    options: ['Coins are heavy', 'You may need them later', 'Coins disappear', 'To stop playing'],
-    correct: 1,
-    explanation: 'Saving helps you be ready for harder levels!'
-  },
+            // Create question modal
+            this.questionOverlay = this.add.graphics();
+            this.questionOverlay.fillStyle(0x000000, 0.5);
+            this.questionOverlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
 
-  {
-    question: 'You earn coins after winning a battle. What is a smart next step?',
-    options: ['Spend all coins', 'Save some for later battles', 'Lose them', 'Give them away'],
-    correct: 1,
-    explanation: 'Saving helps you prepare for future challenges.'
-  },
+            const panelX = this.cameras.main.centerX - 250;
+            const panelY = this.cameras.main.centerY - 170;
 
-  {
-  question: 'You want a potion later. What should you do with your coins now?',
-  options: ['Spend all coins', 'Save some coins', 'Throw coins away', 'Forget coins'],
-  correct: 1,
-  explanation: 'Saving coins lets you buy things you need later.'
-  },
-  
-  {
-  question: 'What happens if you spend all your coins too fast?',
-  options: ['You have more coins', 'You may not have coins later', 'Coins grow back', 'Nothing matters'],
-  correct: 1,
-  explanation: 'Spending too fast can leave you unprepared.'
-  },
+            this.questionPanel = this.add.graphics();
+            this.questionPanel.fillStyle(0xF5E6C8, 1);
+            this.questionPanel.fillRoundedRect(panelX, panelY, 500, 340, 16);
+            this.questionPanel.lineStyle(4, 0xDCC9A3, 1);
+            this.questionPanel.strokeRoundedRect(panelX, panelY, 500, 340, 16);
 
-  {
-  question: 'You get 5 coins and save them. Is this a good idea?',
-  options: ['Yes, saving helps', 'No, spend them now', 'Only at night', 'Only on swords'],
-  correct: 0,
-  explanation: 'Saving coins helps you plan for future needs.'
-  },
-
-  {
-  question: 'What is a smart reason to save coins?',
-  options: ['Coins are shiny', 'You might need them later', 'Coins disappear', 'To slow the game'],
-  correct: 1,
-  explanation: 'Saving prepares you for future challenges.'
-  },
-
-
-
-  // ===== BUDGET CITY (Medium) =====
-  {
-    question: 'What is a budget?',
-    options: ['A wish list', 'A plan for money', 'Free money', 'A game'],
-    correct: 1,
-    explanation: 'A budget helps you plan how to use your money wisely.'
-  },
-
-  {
-    question: 'You have $10. A toy costs $7. How much money is left?',
-    options: ['$3', '$7', '$10', '$17'],
-    correct: 0,
-    explanation: '$10 minus $7 equals $3.'
-  },
-
-  {
-    question: 'Why should you compare prices before buying?',
-    options: ['To waste time', 'To spend more money', 'To find the best deal', 'Because adults say so'],
-    correct: 2,
-    explanation: 'Comparing prices helps you save money!'
-  },
-
-  {
-    question: 'What happens if you spend more money than you have?',
-    options: ['You get richer', 'You go into debt', 'Nothing happens', 'You win a prize'],
-    correct: 1,
-    explanation: 'Spending more than you have can cause problems.'
-  },
-
-  // ===== INVESTMENT ISLAND (Hard but kid-friendly) =====
-  {
-    question: 'What does it mean to invest money?',
-    options: ['Hide it', 'Spend it all', 'Use it to grow more money', 'Lose it'],
-    correct: 2,
-    explanation: 'Investing means using money to try to make more money over time.'
-  },
-
-  {
-    question: 'Why is saving money for the future important?',
-    options: ['So you never have fun', 'For emergencies and goals', 'Because money disappears', 'To give it away'],
-    correct: 1,
-    explanation: 'Saving helps you be ready for surprises and big goals!'
-  },
-
-  {
-    question: 'Which choice shows smart money behavior?',
-    options: [
-      'Buying everything you see',
-      'Saving and planning',
-      'Spending without thinking',
-      'Borrowing for toys'
-    ],
-    correct: 1,
-    explanation: 'Planning and saving shows smart money choices!'
-  },
-
-  {
-    question: 'If you earn money by helping at home, what should you do?',
-    options: ['Spend it all', 'Save some and spend some', 'Lose it', 'Forget about it'],
-    correct: 1,
-    explanation: 'A good balance is saving some and enjoying some!'
-  }
-
-];
-
-        this.currentQuestion = questions[Math.floor(Math.random() * questions.length)];
-        console.log('Using hardcoded question:', this.currentQuestion.question);
-
-        this.selectedAnswer = null; // Track selected answer
-
-        // Create question modal
-        this.questionOverlay = this.add.graphics();
-        this.questionOverlay.fillStyle(0x000000, 0.5);
-        this.questionOverlay.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
-
-        const panelX = this.cameras.main.centerX - 250;
-        const panelY = this.cameras.main.centerY - 170;
-
-        this.questionPanel = this.add.graphics();
-        this.questionPanel.fillStyle(0xF5E6C8, 1);
-        this.questionPanel.fillRoundedRect(panelX, panelY, 500, 340, 16);
-        this.questionPanel.lineStyle(4, 0xDCC9A3, 1);
-        this.questionPanel.strokeRoundedRect(panelX, panelY, 500, 340, 16);
-
-        this.questionText = this.add.text(this.cameras.main.centerX, panelY + 45, this.currentQuestion.question, {
-            fontFamily: 'Nunito',
-            fontSize: '18px',
-            color: '#3D3D3D',
-            wordWrap: { width: 450 },
-            align: 'center'
-        }).setOrigin(0.5);
-
-        // Answer buttons
-        this.answerButtons = [];
-        const letters = ['A', 'B', 'C', 'D'];
-
-        this.currentQuestion.options.forEach((option, index) => {
-            const col = index % 2;
-            const row = Math.floor(index / 2);
-            const btnX = panelX + 30 + (col * 235);
-            const btnY = panelY + 95 + (row * 65);
-
-            const btn = this.add.text(btnX, btnY, `${letters[index]}. ${option}`, {
+            this.questionText = this.add.text(this.cameras.main.centerX, panelY + 45, this.currentQuestion.question, {
                 fontFamily: 'Nunito',
-                fontSize: '14px',
+                fontSize: '18px',
                 color: '#3D3D3D',
-                backgroundColor: '#FFFDF8',
-                padding: { x: 15, y: 10 },
-                fixedWidth: 210,
-                wordWrap: { width: 180 }
-            }).setInteractive({ useHandCursor: true });
+                wordWrap: { width: 450 },
+                align: 'center'
+            }).setOrigin(0.5);
 
-            btn.on('pointerover', () => {
-                if (this.selectedAnswer !== index) {
-                    btn.setStyle({ backgroundColor: '#E8F4FD' });
-                }
+            // Answer buttons
+            this.answerButtons = [];
+            const letters = ['A', 'B', 'C', 'D'];
+
+            this.currentQuestion.options.forEach((option, index) => {
+                const col = index % 2;
+                const row = Math.floor(index / 2);
+                const btnX = panelX + 30 + (col * 235);
+                const btnY = panelY + 95 + (row * 65);
+
+                const btn = this.add.text(btnX, btnY, `${letters[index]}. ${option}`, {
+                    fontFamily: 'Nunito',
+                    fontSize: '14px',
+                    color: '#3D3D3D',
+                    backgroundColor: '#FFFDF8',
+                    padding: { x: 15, y: 10 },
+                    fixedWidth: 210,
+                    wordWrap: { width: 180 }
+                }).setInteractive({ useHandCursor: true });
+
+                btn.on('pointerover', () => {
+                    if (this.selectedAnswer !== index) {
+                        btn.setStyle({ backgroundColor: '#E8F4FD' });
+                    }
+                });
+                btn.on('pointerout', () => {
+                    if (this.selectedAnswer !== index) {
+                        btn.setStyle({ backgroundColor: '#FFFDF8' });
+                    }
+                });
+                btn.on('pointerdown', () => this.selectAnswer(index));
+
+                this.answerButtons.push(btn);
             });
-            btn.on('pointerout', () => {
-                if (this.selectedAnswer !== index) {
-                    btn.setStyle({ backgroundColor: '#FFFDF8' });
-                }
-            });
-            btn.on('pointerdown', () => this.selectAnswer(index));
 
-            this.answerButtons.push(btn);
-        });
+            // Submit button (initially disabled)
+            this.submitBtn = this.add.text(this.cameras.main.centerX, panelY + 295, 'SUBMIT', {
+                fontFamily: 'Fredoka One',
+                fontSize: '20px',
+                color: '#ffffff',
+                backgroundColor: '#999999',
+                padding: { x: 40, y: 10 }
+            }).setOrigin(0.5);
 
-        // Submit button (initially disabled)
-        this.submitBtn = this.add.text(this.cameras.main.centerX, panelY + 295, 'SUBMIT', {
-            fontFamily: 'Fredoka One',
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#999999',
-            padding: { x: 40, y: 10 }
-        }).setOrigin(0.5);
+            // Submit button starts disabled until an answer is selected
+            this.submitBtnEnabled = false;
 
-        // Submit button starts disabled until an answer is selected
-        this.submitBtnEnabled = false;
+            // Close button (X) in top-right corner of question panel
+            this.questionCloseBtn = this.add.text(panelX + 475, panelY + 15, 'X', {
+                fontFamily: 'Fredoka One',
+                fontSize: '24px',
+                color: '#666666'
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        // Close button (X) in top-right corner of question panel
-        this.questionCloseBtn = this.add.text(panelX + 475, panelY + 15, 'X', {
-            fontFamily: 'Fredoka One',
-            fontSize: '24px',
-            color: '#666666'
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            this.questionCloseBtn.on('pointerover', () => this.questionCloseBtn.setStyle({ color: '#DC143C' }));
+            this.questionCloseBtn.on('pointerout', () => this.questionCloseBtn.setStyle({ color: '#666666' }));
+            this.questionCloseBtn.on('pointerdown', () => this.hideQuestion());
 
-        this.questionCloseBtn.on('pointerover', () => this.questionCloseBtn.setStyle({ color: '#DC143C' }));
-        this.questionCloseBtn.on('pointerout', () => this.questionCloseBtn.setStyle({ color: '#666666' }));
-        this.questionCloseBtn.on('pointerdown', () => this.hideQuestion());
-
-        // Set question as visible
-        this.questionVisible = true;
-        this.setQuestionIconVisible(false);
+            // Set question as visible
+            this.questionVisible = true;
+            this.setQuestionIconVisible(false);
+        } catch (error) {
+            console.error('Error fetching question:', error);
+            this.showMessage('Failed to load question. Please try again.', '#DC143C');
+        } finally {
+            this.questionLoading = false;
+        }
     }
 
     selectAnswer(index) {

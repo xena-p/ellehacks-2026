@@ -24,14 +24,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 
+DATABASE_URL = os.environ["DATABASE_URL"]
+
 DATABASES = {
-    "default": dj_database_url.parse(os.getenv("DATABASE_URL"))
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+    )
 }
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)ckpbur2o6*#-!7wh6jyp!cs(rhdx9-9zkkx3s940v%y6)3)^d'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

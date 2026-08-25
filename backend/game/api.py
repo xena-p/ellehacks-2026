@@ -4,7 +4,7 @@ from ninja import NinjaAPI, Schema
 from django.conf import settings
 from .gemini_utils import generate_question, QuestionSchema
 from .models import Player
-from .models import GameRun, Spell, PermanentUpgrade, UserPermanentUpgrade, GameRunSpell
+from .models import GameRun, Spell, PermanentUpgrade, UserPermanentUpgrade, GameRunSpell, Enemy
 from .models import use_spell
 from django.contrib.auth import authenticate, login
 from ninja.security import django_auth
@@ -31,6 +31,76 @@ class WinResponse(Schema):
 #         "answer": 8,
 #         "options": [6, 8, 9, 10]
 #     }
+
+
+
+@api.post("/auth/signup")
+def signup(request, username: str, password: str):
+    if Player.objects.filter(username=username).exists():
+        return {"error": "Username taken"}
+
+    user = Player.objects.create_user(
+        username=username,
+        password=password
+    )
+    token, _ = Token.objects.get_or_create(user=user)
+    return {"success": True, "token": token.key}
+
+
+@api.post("/auth/login")
+def login_user(request, username: str, password: str):
+    user = authenticate(username=username, password=password)
+    token, _ = Token.objects.get_or_create(user=user)
+    return {"success": True, "token": token.key}
+
+
+@api.get("/player", auth=TokenAuth())
+def get_player(request):
+    player = request.auth
+    return {
+        "level": player.level,
+        "max_hp": player.max_hp,
+        "coins": player.coins,
+        "wins": player.wins
+    }
+
+@api.post("/game/createenemy", auth=TokenAuth())
+def create_enemy(request, name: str, level: int):
+    enemy = Enemy.objects.create(name=name, level=level)
+    return {"success": True, "enemy_id": enemy.id}
+
+@api.post("/game/start", auth=TokenAuth())
+def start_game(request):
+    if not request.auth.is_authenticated:
+        return {"message": "Authentication required"}, 401
+
+    user = request.auth
+    map_level = user.level  # Start game at user's current level
+
+    if not user.can_access_map(map_level):
+        return {"error": "Map locked"}
+
+    enemy = Enemy.objects.get(level=map_level)
+
+    run = GameRun.objects.create(
+        user=user,
+        map_level=map_level,
+        enemy_name=enemy.name,
+        enemy_hp=enemy.get_max_hp(),
+        enemy_attack_power=enemy.get_attack_power(),
+        current_hp=user.max_hp,
+        reward_coins=enemy.get_coin_reward()
+    )
+
+    return {
+        "game_run_id": run.id,
+        "starting_hp": run.current_hp,
+        "map_level": run.map_level,
+        "enemy_name": run.enemy_name,
+        "enemy_hp": run.enemy_hp,
+        "enemy_attack_power": run.enemy_attack_power,
+        "reward_coins": run.reward_coins
+    }
 
 @api.post("/buy-health", auth=TokenAuth())
 def buy_health(request, upgrade_id: int):#change to pack id (no amount and cost)
@@ -74,61 +144,6 @@ def report_win(request):
         "leveled_up": leveled_up,
         "message": msg
     }
-
-@api.post("/auth/signup")
-def signup(request, username: str, password: str):
-    if Player.objects.filter(username=username).exists():
-        return {"error": "Username taken"}
-
-    user = Player.objects.create_user(
-        username=username,
-        password=password
-    )
-    token, _ = Token.objects.get_or_create(user=user)
-    return {"success": True, "token": token.key}
-
-
-@api.post("/auth/login")
-def login_user(request, username: str, password: str):
-    user = authenticate(username=username, password=password)
-    token, _ = Token.objects.get_or_create(user=user)
-    return {"success": True, "token": token.key}
-
-
-@api.get("/player", auth=TokenAuth())
-def get_player(request):
-    player = request.auth
-    return {
-        "level": player.level,
-        "max_hp": player.max_hp,
-        "coins": player.coins,
-        "wins": player.wins
-    }
-
-# @api.post("/game/start", auth=TokenAuth())
-# def start_game(request):
-#     if not request.auth.is_authenticated:
-#         return {"message": "Authentication required"}, 401
-
-#     user = request.auth
-#     map_level = user.level  # Start game at user's current level
-
-#     if not user.can_access_map(map_level):
-#         return {"error": "Map locked"}
-
-#     run = GameRun.objects.create(
-#         user=user,
-#         map_level=map_level,
-#         current_hp=user.get_max_hp()
-#     )
-
-#     return {
-#         "game_run_id": run.id,
-#         "starting_hp": run.current_hp,
-#         "map_level": run.map_level
-#     }
-
-
 
 @api.post("/shop/buy-spell", auth=TokenAuth())
 def buy_spell(request, spell_id: int, game_run_id: int):
