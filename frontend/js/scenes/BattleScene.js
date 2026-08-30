@@ -31,10 +31,12 @@ class BattleScene extends Phaser.Scene {
 
     init(data) {
         // Receive data from MapScene
-        this.difficulty = data.difficulty || 'easy';
+        this.mapLevel = data.mapLevel;
         this.areaName = data.area || "King's Court";
 
         // Reset battle state
+        this.gameRunId = null;
+
         this.battleState = 'shop'; // shop, battle, ended
         this.playerHP = 0;
         this.playerMaxHP = 0;
@@ -46,8 +48,11 @@ class BattleScene extends Phaser.Scene {
         this.hasShield = false;
         this.hasPowerStrike = false;
         this.currentQuestion = null;
-        this.playerCoins = 0;
         this.questionVisible = false;
+
+        this.answerSubmitting = false;
+        this.questionLoading = false;
+        this.submitBtnEnabled = false;
     }
 
     preload() {
@@ -74,17 +79,32 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
-        const token = localStorage.getItem("authToken");
-        // Fetch player data from API, then initialize the battle
-        this.fetchPlayerData(token)
-        .then(() => {
-            // Select random enemy based on difficulty
-            const enemyList = this.ENEMIES[this.difficulty];
-            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
-            this.enemyMaxHP = this.currentEnemy.hp;
-            this.enemyHP = this.enemyMaxHP;
+        this.initializeBattle();
+    }
 
-            // Create scene elements
+    async initializeBattle() {
+        try {
+            const run = await this.startGame(this.mapLevel);
+
+            // Save the run ID for all future game requests.
+            this.gameRunId = run.game_run_id;
+
+            // Treat values returned by the backend as authoritative.
+            this.playerHP = run.current_hp;
+            this.playerMaxHP = run.max_hp;
+            this.playerCoins = run.coins;
+
+            this.enemyHP = run.enemy_hp;
+            this.enemyMaxHP = run.enemy_max_hp;
+
+            // This object can remain for rendering, but it comes from the backend.
+            this.currentEnemy = {
+                name: run.enemy_name,
+                hp: run.enemy_max_hp,
+                attack: run.enemy_attack_power,
+                coins: run.reward_coins
+            };
+
             this.createBackground();
             this.createCharacters();
             this.createHealthBars();
@@ -94,38 +114,25 @@ class BattleScene extends Phaser.Scene {
             this.createQuestionIcon();
             this.createLogoutButton();
 
-            // Start battle with first question
-            this.battleState = 'battle';
-            this.showQuestion();
-        })
-        .catch((error) => {
-            console.error('Error initializing battle:', error);
-            
-            // Fallback initialization with local data
-            const enemyList = this.ENEMIES[this.difficulty];
-            this.currentEnemy = enemyList[Math.floor(Math.random() * enemyList.length)];
-            this.enemyMaxHP = this.currentEnemy.hp;
-            this.enemyHP = this.enemyMaxHP;
-            
-            // Use local gameData as fallback
-            this.playerMaxHP = gameData.user ? (gameData.user.max_hp || 100) : 100;
-            this.playerHP = this.playerMaxHP;
-            this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
+            this.battleState = "battle";
 
-            // Create scene elements
-            this.createBackground();
-            this.createCharacters();
-            this.createHealthBars();
-            this.createSpellBar();
-            this.createCoinDisplay();
-            this.createShopIcon();
-            this.createQuestionIcon();
-            this.createLogoutButton();
+            await this.showQuestion();
+        } catch (error) {
+            console.error("Failed to initialize battle:", error);
+            this.battleState = "error";
 
-            // Start battle with first question
-            this.battleState = 'battle';
-            this.showQuestion();
-        });
+            this.add.text(
+                this.cameras.main.centerX,
+                this.cameras.main.centerY,
+                "Unable to start the battle.\nPlease return to the map and try again.",
+                {
+                    fontFamily: "Nunito",
+                    fontSize: "20px",
+                    color: "#ffffff",
+                    align: "center"
+                }
+            ).setOrigin(0.5);
+        }
     }
 
     // Logout button
@@ -195,6 +202,36 @@ class BattleScene extends Phaser.Scene {
             this.playerHP = this.playerMaxHP;
             this.playerCoins = gameData.user ? (gameData.user.coins || 50) : 50;
         }
+    }
+
+    async startGame(mapLevel) {
+        const token = localStorage.getItem("authToken");
+
+        if (!token) {
+            throw new Error("Authentication required");
+        }
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/api/game/start",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Token ${token}`
+                },
+                body: JSON.stringify({
+                    map_level: mapLevel
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || data.error || "Could not start game");
+        }
+
+        return data;
     }
 
     
@@ -933,15 +970,14 @@ class BattleScene extends Phaser.Scene {
 
         try {
             const token = localStorage.getItem("authToken");
-                const response = await fetch(
-            "http://127.0.0.1:8000/api/generate-quiz",
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Token ${token}`
+            const response = await fetch(
+                `http://127.0.0.1:8000/api/game/${this.gameRunId}/generate-quiz`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Token ${token}`
+                    }
                 }
-            }
             );
 
             if (!response.ok) {
@@ -950,18 +986,12 @@ class BattleScene extends Phaser.Scene {
 
             const data = await response.json();
 
-            //Convert the backend format into the format expected by the existing frontend
-            const correctIndex = data.options.indexOf(data.answer);
-
-            if (correctIndex === -1) {
-                throw new Error("The correct answer is missing from the options");
-            }
+            
 
             this.currentQuestion = {
+                attemptId: data.question_id,
                 question: data.question,
-                options: data.options,
-                correct: correctIndex,
-                explanation: data.explanation
+                options: data.options
             };
         
             this.selectedAnswer = null; // Track selected answer
@@ -1112,35 +1142,151 @@ class BattleScene extends Phaser.Scene {
         this.setQuestionIconVisible(false);
     }
 
-    submitAnswer() {
-        if (this.selectedAnswer === null) return;
-
-        const isCorrect = this.selectedAnswer === this.currentQuestion.correct;
-
-        // Disable all buttons
-        this.answerButtons.forEach(btn => btn.removeInteractive());
-        this.submitBtn.removeInteractive();
-
-        // Show correct/wrong feedback
-        this.answerButtons[this.currentQuestion.correct].setStyle({ backgroundColor: '#90EE90', color: '#3D3D3D' });
-        if (!isCorrect) {
-            this.answerButtons[this.selectedAnswer].setStyle({ backgroundColor: '#FFB6C1', color: '#3D3D3D' });
+    async submitAnswer() {
+        if (this.selectedAnswer === null || this.answerSubmitting) {
+            return;
         }
 
-        // Update submit button to show result
-        this.submitBtn.setText(isCorrect ? 'CORRECT!' : 'WRONG!');
-        this.submitBtn.setStyle({ backgroundColor: isCorrect ? '#2E7D32' : '#DC143C' });
+        this.answerSubmitting = true;
 
-        // Delay before processing result
-        this.time.delayedCall(1200, () => {
-            this.clearQuestionModal();
+        // Keep these so the animations know where the health bars started.
+        const previousPlayerHP = this.playerHP;
+        const previousEnemyHP = this.enemyHP;
 
-            if (isCorrect) {
-                this.playerAttack();
-            } else {
-                this.enemyAttack();
-            }
+        // Prevent duplicate submissions.
+        this.answerButtons.forEach((button) => {
+            button.removeInteractive();
         });
+
+        this.submitBtn.removeInteractive();
+        this.submitBtn.setText("CHECKING...");
+        this.submitBtn.setStyle({
+            backgroundColor: "#999999"
+        });
+
+        try {
+            const token = localStorage.getItem("authToken");
+
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+
+            const attemptId = this.currentQuestion.attemptId;
+
+            const response = await fetch(
+                `http://127.0.0.1:8000/api/game/${attemptId}/answer`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Token ${token}`
+                    },
+                    body: JSON.stringify({
+                        selected_index: this.selectedAnswer
+                    })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    result.error ||
+                    "Failed to submit answer"
+                );
+            }
+
+            // Highlight the correct answer based only on the backend response.
+            if (
+                Number.isInteger(result.correct_index) &&
+                this.answerButtons[result.correct_index]
+            ) {
+                this.answerButtons[result.correct_index].setStyle({
+                    backgroundColor: "#90EE90",
+                    color: "#3D3D3D"
+                });
+            }
+
+            if (
+                !result.correct &&
+                this.answerButtons[this.selectedAnswer]
+            ) {
+                this.answerButtons[this.selectedAnswer].setStyle({
+                    backgroundColor: "#FFB6C1",
+                    color: "#3D3D3D"
+                });
+            }
+
+            this.submitBtn.setText(
+                result.correct ? "CORRECT!" : "WRONG!"
+            );
+
+            this.submitBtn.setStyle({
+                backgroundColor: result.correct
+                    ? "#2E7D32"
+                    : "#DC143C"
+            });
+
+            // Copy the authoritative state returned by the backend.
+            this.playerHP = result.current_hp;
+            this.enemyHP = result.enemy_hp;
+
+            if (typeof result.new_coins === "number") {
+                this.playerCoins = result.new_coins;
+                this.coinText.setText(this.playerCoins.toString());
+            }
+
+            if (gameData.user) {
+                if (typeof result.new_coins === "number") {
+                    gameData.user.coins = result.new_coins;
+                }
+
+                if (typeof result.new_wins === "number") {
+                    gameData.user.wins = result.new_wins;
+                }
+
+                if (typeof result.level === "number") {
+                    gameData.user.level = result.level;
+                }
+            }
+
+            this.time.delayedCall(1200, () => {
+                this.clearQuestionModal();
+
+                if (result.correct) {
+                    this.playerAttackFromServer(
+                        previousEnemyHP,
+                        result
+                    );
+                } else {
+                    this.enemyAttackFromServer(
+                        previousPlayerHP,
+                        result
+                    );
+                }
+            });
+        } catch (error) {
+            console.error("Answer submission failed:", error);
+
+            this.showMessage(
+                error.message || "Could not submit answer",
+                "#DC143C"
+            );
+
+            // Allow the same answer to be retried after a network error.
+            this.answerButtons.forEach((button) => {
+                button.setInteractive({ useHandCursor: true });
+            });
+
+            this.submitBtn.setText("SUBMIT");
+            this.submitBtn.setStyle({
+                backgroundColor: "#2E7D32"
+            });
+            this.submitBtn.setInteractive({ useHandCursor: true });
+
+            this.answerSubmitting = false;
+        }
     }
 
     clearQuestionModal() {
@@ -1167,273 +1313,133 @@ class BattleScene extends Phaser.Scene {
         this.questionVisible = false;
     }
 
-    playerAttack() {
-        let damage = this.PLAYER_DAMAGE;
-        const isPowerStrike = this.hasPowerStrike;
+    playerAttackFromServer(previousEnemyHP, result) {
+        const newEnemyHP = result.enemy_hp;
+        const damage = Math.max(0, previousEnemyHP - newEnemyHP);
 
-        // Check for power strike
-        if (isPowerStrike) {
-            damage = 50;
-            this.hasPowerStrike = false;
-        }
+        // Display state is copied from the backend.
+        this.enemyHP = newEnemyHP;
 
-        // Apply damage
-        this.enemyHP = Math.max(0, this.enemyHP - damage);
+        this.showMessage("Correct!", "#2E7D32");
 
-        const centerY = this.cameras.main.centerY + 50;
-        const enemyX = this.cameras.main.width - 230;
+        // Keep your existing lunge, flash, shake, and damage-number animations.
+        this.showDamageNumber(
+            this.cameras.main.width - 180,
+            this.cameras.main.centerY,
+            damage,
+            "#FF0000"
+        );
 
-        // Step 1: Show "Correct!" message
-        this.showMessage(isPowerStrike ? 'POWER STRIKE!' : 'Correct!', isPowerStrike ? '#FF6600' : '#2E7D32');
+        const enemyBarX = this.cameras.main.width - 270;
 
-        // Step 2: Player jumps/moves toward enemy (after 300ms)
-        this.time.delayedCall(300, () => {
-            // Player lunge animation
-            this.tweens.add({
-                targets: this.playerSprite,
-                x: 200,
-                duration: 300,
-                ease: 'Power2',
-                yoyo: true,
-                onYoyo: () => {
-                    // Step 3: Impact! Shake enemy
-                    this.shakeSprite(this.enemySprite, 10);
+        this.tweens.addCounter({
+            from: previousEnemyHP,
+            to: newEnemyHP,
+            duration: 500,
 
-                    //red tint
-                    this.hitFlash(this.enemySprite, 0xff0000, 150);
+            onUpdate: (tween) => {
+                const displayedHP = Math.round(tween.getValue());
 
-                    // Show damage number floating up
-                    this.showDamageNumber(enemyX + 50, centerY - 30, damage, '#FF0000');
+                this.updateHealthBar(
+                    this.enemyHealthBar,
+                    enemyBarX,
+                    70,
+                    250,
+                    30,
+                    displayedHP,
+                    this.enemyMaxHP,
+                    0xDC143C
+                );
 
-                    // Screen shake for power strike
-                    if (isPowerStrike) {
-                        this.cameras.main.shake(200, 0.01);
-                    }
-                }
-            });
-        });
+                this.enemyHealthText.setText(
+                    `${displayedHP}/${this.enemyMaxHP}`
+                );
+            },
 
-        // Step 4: Update health bar (after 800ms)
-        this.time.delayedCall(800, () => {
-            const enemyBarX = this.cameras.main.width - 270;
-            const startHP = this.enemyHP + damage;
-            let currentHP = startHP;
-
-            // Animate health bar decreasing
-            this.tweens.addCounter({
-                from: startHP,
-                to: this.enemyHP,
-                duration: 500,
-                onUpdate: (tween) => {
-                    currentHP = Math.round(tween.getValue());
-                    this.updateHealthBar(this.enemyHealthBar, enemyBarX, 70, 250, 30, currentHP, this.enemyMaxHP, 0xDC143C);
-                    this.enemyHealthText.setText(`${currentHP}/${this.enemyMaxHP}`);
-                }
-            });
-        });
-
-        // Step 5: Check win condition and show next question (after 2000ms)
-        this.time.delayedCall(2000, () => {
-            if (this.enemyHP <= 0) {
-                this.battleVictory();
-            } else {
-                this.showQuestion();
+            onComplete: () => {
+                this.handleServerOutcome(result);
             }
         });
     }
 
-    enemyAttack() {
-        const centerY = this.cameras.main.centerY + 50;
-        const playerX = 150;
+    enemyAttackFromServer(previousPlayerHP, result) {
+        const newPlayerHP = result.current_hp;
+        const damage = Math.max(0, previousPlayerHP - newPlayerHP);
 
-        // Check for shield
-        if (this.hasShield) {
-            this.hasShield = false;
-            this.showMessage('Wrong answer...', '#DC143C');
+        this.playerHP = newPlayerHP;
 
-            // Enemy still lunges but shield blocks
-            this.time.delayedCall(500, () => {
-                this.tweens.add({
-                    targets: this.enemySprite,
-                    x: -150,
-                    duration: 300,
-                    ease: 'Power2',
-                    yoyo: true,
-                    onYoyo: () => {
-                        // Shield block effect
-                        this.showMessage('Shield blocked the attack!', '#4169E1');
-                        const shieldFlash = this.add.graphics();
-                        shieldFlash.fillStyle(0x4169E1, 0.8);
-                        shieldFlash.fillCircle(playerX + 40, centerY, 80);
-                        this.tweens.add({
-                            targets: shieldFlash,
-                            alpha: 0,
-                            scale: 1.5,
-                            duration: 500,
-                            onComplete: () => shieldFlash.destroy()
-                        });
-                    }
-                });
-            });
+        this.showMessage("Wrong answer...", "#DC143C");
 
-            this.time.delayedCall(2000, () => this.showQuestion());
+        this.showDamageNumber(
+            190,
+            this.cameras.main.centerY,
+            damage,
+            "#FF0000"
+        );
+
+        this.tweens.addCounter({
+            from: previousPlayerHP,
+            to: newPlayerHP,
+            duration: 500,
+
+            onUpdate: (tween) => {
+                const displayedHP = Math.round(tween.getValue());
+
+                this.updateHealthBar(
+                    this.playerHealthBar,
+                    20,
+                    70,
+                    250,
+                    30,
+                    displayedHP,
+                    this.playerMaxHP,
+                    0x4EC5F1
+                );
+
+                this.playerHealthText.setText(
+                    `${displayedHP}/${this.playerMaxHP}`
+                );
+            },
+
+            onComplete: () => {
+                this.handleServerOutcome(result);
+            }
+        });
+    }
+
+    battleVictoryFromServer(result) {
+        if (this.battleState === "ended") {
             return;
         }
 
-        const damage = this.currentEnemy.attack;
-        this.playerHP = Math.max(0, this.playerHP - damage);
+        this.battleState = "ended";
 
-        // Step 1: Show "Wrong!" message
-        this.showMessage('Wrong answer...', '#DC143C');
-
-        // Step 2: Enemy lunges toward player (after 500ms)
-        this.time.delayedCall(500, () => {
-            this.tweens.add({
-                targets: this.enemySprite,
-                x: -150,
-                duration: 300,
-                ease: 'Power2',
-                yoyo: true,
-                onYoyo: () => {
-                    // Step 3: Impact! Shake player
-                    this.shakeSprite(this.playerSprite, 10);
-
-                    //red tint:
-                    this.hitFlash(this.playerSprite, 0xff0000, 150);
-                   
-                    // Show damage number floating up
-                    this.showDamageNumber(playerX + 40, centerY - 30, damage, '#FF0000');
-
-                    // Camera shake
-                    this.cameras.main.shake(150, 0.008);
-                }
-            });
-        });
-
-        // Step 4: Update health bar (after 1000ms)
-        this.time.delayedCall(1000, () => {
-            const startHP = this.playerHP + damage;
-            let currentHP = startHP;
-
-            // Animate health bar decreasing
-            this.tweens.addCounter({
-                from: startHP,
-                to: this.playerHP,
-                duration: 500,
-                onUpdate: (tween) => {
-                    currentHP = Math.round(tween.getValue());
-                    this.updateHealthBar(this.playerHealthBar, 20, 70, 250, 30, currentHP, this.playerMaxHP, 0x4EC5F1);
-                    this.playerHealthText.setText(`${currentHP}/${this.playerMaxHP}`);
-                }
-            });
-        });
-
-        // Step 5: Check lose condition and show next question (after 2000ms)
-        this.time.delayedCall(2000, () => {
-            if (this.playerHP <= 0) {
-                this.battleDefeat();
-            } else {
-                this.showQuestion();
-            }
-        });
-    }
-
-    battleVictory() {
-        if (this.battleState === 'ended') return;
-        this.battleState = 'ended';
-
-        if (this.time) this.time.removeAllEvents();
-
-        // Award coins
-        const coinsWon = this.currentEnemy.coins;
-        this.playerCoins += coinsWon;
-
-        // Update global game data
-        if (gameData.user) {
-            gameData.user.wins = (gameData.user.wins || 0) + 1;
-            gameData.user.coins = this.playerCoins;
-
-            // Local level up logic (mirrors backend LEVEL_THRESHOLDS)
-            const wins = gameData.user.wins;
-            const oldLevel = gameData.user.level;
-            if (wins >= 5) gameData.user.level = 5;
-            else if (wins >= 3) gameData.user.level = 4;
-            else if (wins >= 2) gameData.user.level = 3;
-            else if (wins >= 1) gameData.user.level = 2;
-            else gameData.user.level = 1;
-
-            // Show level up message if leveled up locally
-            if (gameData.user.level > oldLevel) {
-                this.showMessage(`LEVEL UP! Now level ${gameData.user.level}!`, '#FFD700');
-            }
+        if (this.time) {
+            this.time.removeAllEvents();
         }
 
-        // Report win to backend API to sync stats (will override local if successful)
-        this._winReportPromise = this.reportWinToBackend().catch((error) => {
-            console.error('Failed to report win to backend:', error);
-        });
+        const coinsWon =
+            typeof result.reward_coins === "number"
+                ? result.reward_coins
+                : 0;
 
-        // Show victory overlay
         this.showResultOverlay(true, coinsWon);
     }
 
-    async reportWinToBackend() {
-        try {
-            const token = localStorage.getItem('authToken');
-
-            if (token && token !== 'local-user-token') {
-                const response = await fetch('http://127.0.0.1:8000/api/report-win', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    console.error('Report win API failed:', response.status);
-                    return;
-                }
-
-                const data = await response.json();
-                console.log('Win reported to backend:', data);
-
-                // Update local gameData with server response
-                if (!gameData.user) gameData.user = {};
-                if (typeof data.new_coins === 'number') gameData.user.coins = data.new_coins;
-                if (typeof data.new_wins === 'number') gameData.user.wins = data.new_wins;
-
-                // Show level up message if applicable
-                if (data.leveled_up) {
-                    this.showMessage(data.message, '#FFD700');
-                }
-
-                // Sync full player state (including level) from backend after win
-                try {
-                    const playerRes = await fetch('http://127.0.0.1:8000/api/player', {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Token ${token}`
-                        }
-                    });
-
-                    if (playerRes.ok) {
-                        const playerData = await playerRes.json();
-
-                        if (!gameData.user) gameData.user = {};
-                        gameData.user.level = playerData.level;
-                        gameData.user.max_hp = playerData.max_hp;
-                        gameData.user.coins = playerData.coins;
-                        gameData.user.wins = playerData.wins;
-                    }
-                } catch (e) {
-                    console.error('Failed to sync player after win:', e);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to report win to backend:', error);
+    handleServerOutcome(result) {
+        if (result.outcome === "won") {
+            this.battleVictoryFromServer(result);
+            return;
         }
+
+        if (result.outcome === "lost") {
+            this.battleDefeat(result);
+            return;
+        }
+
+        // The run is still active.
+        this.answerSubmitting = false;
+        this.showQuestion();
     }
 
     battleDefeat() {

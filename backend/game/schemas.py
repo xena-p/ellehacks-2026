@@ -1,5 +1,14 @@
 from ninja import Schema
 from datetime import datetime
+from rest_framework.authtoken.models import Token
+
+class SignInReq(Schema):
+    username: str
+    password: str
+
+class SignInRes(Schema):
+    username: str
+    token: str 
 
 class BuyHealthSchema(Schema):
     pack_id: str
@@ -9,15 +18,49 @@ class PublicQuestionSchema(Schema):
     question: str
     options: list[str]
 
-class AnswerSubmissionSchema(Schema):
-    question_id: int
+
+class WinResponse(Schema):
+    new_coins: int
+    new_wins: int
+    leveled_up: bool
+    message: str
+
+#in
+class AnswerIn(Schema):
     selected_index: int
 
-
-class AnswerResultSchema(Schema):
-    correct: bool
-    correct_index: int
+#out
+class AnswerResult(Schema):
+    correct: bool | None = None
+    correct_index: int | None = None
+    explanation: str | None = None
+    current_hp: int | None = None
+    enemy_hp: int | None = None
+    outcome: str | None = None
+    new_coins: int | None = None
+    reward_coins: int | None = None
+    leveled_up: bool | None = None
+    level: int | None = None
+    new_wins: int | None = None
+    message: str | None = None
+class GeneratedQuestionSchema(Schema):
+    question: str
+    options: list[str]
+    answer: str
     explanation: str
+
+class StartGameResponse(Schema):
+    game_run_id: int
+    map_level: int
+    current_hp: int
+    max_hp: int
+    enemy_name: str
+    enemy_max_hp: int
+    enemy_attack_power: int
+    enemy_hp: int
+    reward_coins: int
+    coins: int
+    active: bool
 
 class StartGameRequest(Schema):
     map_level: int

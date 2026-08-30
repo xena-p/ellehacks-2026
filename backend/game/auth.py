@@ -7,8 +7,7 @@ class TokenAuth(APIKeyHeader):
     param_name = "Authorization"
 
     def authenticate(self, request, key):
-        print(f"--- AUTH ATTEMPT ---")
-        print(f"Header received: {key}") # Check your terminal for this!
+
 
         if not key:
             return None

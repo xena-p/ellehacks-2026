@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 # Create your tests here.
 from unittest.mock import patch, MagicMock
-from game.gemini_utils import generate_question, QuestionSchema
+from game.gemini_utils import generate_question
 
 User = get_user_model()
 

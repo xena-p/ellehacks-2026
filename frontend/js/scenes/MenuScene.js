@@ -144,13 +144,12 @@ async login(username, password) {
 
     try {
         const url =
-            `http://127.0.0.1:8000/api/auth/login` +
-            `?username=${encodeURIComponent(username)}` +
-            `&password=${encodeURIComponent(password)}`;
+            `http://127.0.0.1:8000/api/auth/login`;
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
         });
 
         const data = await response.json().catch(() => null);
@@ -177,9 +176,10 @@ async login(username, password) {
 
         try {
             // Call Django Ninja API signup endpoint
-            const response = await fetch(`http://127.0.0.1:8000/api/auth/signup?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/auth/signup`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
             });
             const data = await response.json();
 

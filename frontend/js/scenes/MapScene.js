@@ -153,7 +153,7 @@ class MapScene extends Phaser.Scene {
 
         // Start battle with appropriate difficulty
         this.scene.start("BattleScene", {
-          difficulty: level.difficulty || "easy",
+          mapLevel: level.levelRequired,
           area: level.key.replace("Scene", "")
         });
       });
