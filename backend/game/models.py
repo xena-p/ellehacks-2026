@@ -204,11 +204,19 @@ class Spell(models.Model):
 
     def __str__(self):
         return self.name
+
+    def heal(self, game_run: GameRun):
+        game_run.current_hp = min(game_run.max_hp, game_run.current_hp + self.value)
+        game_run.save()
+
+    def damage(self, game_run: GameRun):
+        game_run
     
 class GameRunSpell(models.Model):
     game_run = models.ForeignKey(
         GameRun, related_name="spells", on_delete=models.CASCADE
     )
+
     spell = models.ForeignKey(Spell, on_delete=models.CASCADE)
     used = models.BooleanField(default=False)
     turns_remaining = models.PositiveSmallIntegerField(default=0)
@@ -220,23 +228,23 @@ class GameRunSpell(models.Model):
 
 
 
-def use_spell(self, game_run: GameRun, spell_id: int):
-    run_spell = GameRunSpell.objects.get(
-        game_run=game_run,
-        spell_id=spell_id,
-        used=False
-    )
+# def use_spell(self, game_run: GameRun, spell_id: int):
+#     run_spell = GameRunSpell.objects.get(
+#         game_run=game_run,
+#         spell_id=spell_id,
+#         used=False
+#     )
 
-    spell = run_spell.spell
+#     spell = run_spell.spell
 
-    if spell.effect == "heal":
-        game_run.current_hp += spell.value
+#     if spell.effect == "heal":
+#         game_run.current_hp += spell.value
 
-    # damage / shield handled in game engine logic
+#     # damage / shield handled in game engine logic
 
-    run_spell.used = True
-    run_spell.save()
-    game_run.save()
+#     run_spell.used = True
+#     run_spell.save()
+#     game_run.save()
 
 class Enemy(models.Model):
     name = models.CharField(max_length=100)

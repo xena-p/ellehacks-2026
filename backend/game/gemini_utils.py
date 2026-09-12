@@ -41,7 +41,8 @@ def generate_question(level: int) -> dict:
 
     prompt = (
         f"Generate one multiple-choice finance question for level {level} ({difficulty_desc}) for children. "
-        "Make sure it's appropriate for KIDS age 3-7 and keep the question under 130 characters."
+        "Make sure it's appropriate for KIDS age 3-11 and keep the question under 130 characters. For the explanation, " \
+        "the user got the answer wrong, so gently explain why the correct answer is the correct answer."
     )
 
     response = client.models.generate_content(

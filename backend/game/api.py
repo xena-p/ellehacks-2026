@@ -10,7 +10,6 @@ from django.shortcuts import get_object_or_404
 from .schemas import PublicQuestionSchema, SignInReq, SignInRes, WinResponse, AnswerIn, AnswerResult, StartGameResponse, StartGameRequest
 from .gemini_utils import assign_question
 from .models import Player, QuestionAttempt, GameRun, Spell, PermanentUpgrade, UserPermanentUpgrade, GameRunSpell, Enemy
-from .models import use_spell
 from ninja.security import django_auth
 from rest_framework.authtoken.models import Token
 from .auth import TokenAuth
@@ -132,19 +131,19 @@ def start_game(request, data: StartGameRequest):
     }
 
 
-@api.post("/buy-health", auth=TokenAuth())
-def buy_health(request, upgrade_id: int):#change to pack id (no amount and cost)
-    """
-    Permanently increases the player's max HP by 'amount' if they have enough coins.
-    """
-    user = request.auth
+# @api.post("/buy-health", auth=TokenAuth())
+# def buy_health(request, upgrade_id: int):#change to pack id (no amount and cost)
+#     """
+#     Permanently increases the player's max HP by 'amount' if they have enough coins.
+#     """
+#     user = request.auth
 
-    success, response = user.buy_upgrade(upgrade_id) #make it for pack id
+#     success, response = user.buy_upgrade(upgrade_id) #make it for pack id
 
-    if not success:
-        raise HttpError(400, "Invalid data")
+#     if not success:
+#         raise HttpError(400, "Invalid data")
 
-    return response
+#     return response
 
 @api.get("/game/{game_run_id}/generate-quiz", response=PublicQuestionSchema, auth=TokenAuth())
 @transaction.atomic
@@ -185,26 +184,6 @@ def submit_answer(request, attempt_id: int, data: AnswerIn):
     
     
 
-
-
-
-# @api.post("/report-win", response=WinResponse, auth=TokenAuth())
-# def report_win(request):
-#     player = request.auth
-#     # It adds a win, adds coins, and checks if level should go up.
-#     leveled_up = player.add_win(coins_earned=10) 
-    
-#     msg = "Victory!"
-#     if leveled_up:
-#         msg = f"LEVEL UP! You are now level {player.level}!"
-
-#     return {
-#         "new_coins": player.coins,
-#         "new_wins": player.wins,
-#         "leveled_up": leveled_up,
-#         "message": msg
-#     }
-
 @api.post("/shop/buy-spell", auth=TokenAuth())
 def buy_spell(request, spell_id: int, game_run_id: int):
     user = request.auth
@@ -215,34 +194,30 @@ def buy_spell(request, spell_id: int, game_run_id: int):
 
     run = GameRun.objects.get(id=game_run_id, user=user, active=True)
 
+    if GameRunSpell.objects.get(game_run=run, spell=spell):
+        raise HttpError(404, "You already bought this!")
     GameRunSpell.objects.create(game_run=run, spell=spell)
     user.coins -= spell.cost
     user.save()
     return {"success": True, "coins": user.coins}
 
 @api.post("/shop/buy-upgrade", auth=TokenAuth())
-def buy_upgrade(request, upgrade_id: int):
+def buy_upgrade(request, upgrade_id: int, game_run_id: int):
     user = request.auth
-    upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
-
-    if user.coins < upgrade.cost:
-        return {"error": "Not enough coins"}
-
-    UserPermanentUpgrade.objects.create(user=user, upgrade=upgrade)
-    user.coins -= upgrade.cost
-    user.save()
+    game_run = game_run_id
+    player_service = PlayerService()
+    player_service.buy_upgrade(upgrade_id, user)
     return {"success": True, "coins": user.coins}
 
 @api.post("/game/use-spell", auth=TokenAuth())
 def api_use_spell(request, game_run_id: int, spell_id: int):
-    run = GameRun.objects.get(
-        id=game_run_id,
-        user=request.auth,
-        active=True
-    )
-
-    use_spell(run, spell_id)
-    return {"current_hp": run.current_hp}
+    run = game_run_id
+    spell = spell_id
+    user = request.auth
+    
+    game_service = GameService()
+    response = game_service.use_spell(user, run, spell)
+    return {"current_hp": response}
 
 @api.delete("/player/delete", auth=TokenAuth())
 def delete_player(request):

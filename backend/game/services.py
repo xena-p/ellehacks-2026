@@ -52,25 +52,24 @@ class PlayerService:
     def __init__(self, user_model=Player):
         self.user_model = user_model
     
-    def buy_upgrade(self, upgrade_id):
+    def buy_upgrade(self, upgrade_id, user):
         upgrade = PermanentUpgrade.objects.get(id=upgrade_id)
 
-        if self.coins < upgrade.cost:
+        if user.coins < upgrade.cost:
             return False, {"error": "Not enough coins"}
         
-        self.base_hp += upgrade.hp_bonus
 
         UserPermanentUpgrade.objects.create(
-            user=self,
+            user=user,
             upgrade=upgrade
         )
 
-        self.coins -= upgrade.cost
-        self.save()
+        user.coins -= upgrade.cost
+        user.save()
 
         return True, {
-            "new_coins": self.coins,
-            "new_base_hp": self.base_hp  
+            "new_coins": user.coins,
+            "new_base_hp": user.base_hp  
         }
 
 
@@ -157,6 +156,48 @@ class GameService:
         }
     
     @transaction.atomic
+    def use_spell(self, user, game_run_id: int, spell_id: int):
+        spell_num = spell_id
+        run = game_run_id
+        
+        game_run = GameRun.objects.get(
+            id=run,
+            user=user
+        )
+        spell = Spell.objects.get(
+                id=spell_num
+        )
+
+        run_spell = GameRunSpell.objects.get(
+            game_run=game_run,
+            spell=spell,
+            used=False
+        )
+        if spell.effect == "heal":
+            spell.heal(game_run)
+        # if spell.effect == "shield":
+            
+
+        
+
+        run_spell.used = True
+        run_spell.save()
+        game_run.save()
+
+        return game_run.current_hp
+
+
+       
+
+
+
+        # damage / shield handled in game engine logic
+
+
+
+
+    
+    @transaction.atomic
     def complete_game(self, game_run_id, question_attempt):
         game_run = (
             GameRun.objects
@@ -193,8 +234,9 @@ class GameService:
         
 
         if game_run.map_level >= user.level:
-            user.recalculate_level()
+
             user.add_win(game_run.reward_coins)
+            user.recalculate_level()
 
 
 
